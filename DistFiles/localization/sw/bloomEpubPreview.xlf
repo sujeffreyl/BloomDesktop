@@ -12,6 +12,7 @@
       
       
       
+      
       </target>
         <note>ID: epubpreview.describe</note>
         <alt-trans>
@@ -21,6 +22,16 @@
       
       
       
+      
+      </target>
+        </alt-trans>
+        <alt-trans>
+          <target xml:lang="sw">Hii ni tafsiri ya  <g id="genid-1" ctype="x-html-a" html:href="https://en.wikipedia.org/wiki/ePUB">ePUB</g> (e-book) ya kitabu chako.<g id="genid-2" ctype="x-html-span" html:class="showForTalkingBooks">Ina sauti, ili wasomi waweze kusikiliza wanaposoma.</g>
+      
+      
+      
+      
+      
       </target>
         </alt-trans>
         <alt-trans>
@@ -41,11 +52,6 @@
         <alt-trans>
           <target xml:lang="sw">Hii ni tafsiri ya  <g id="genid-1" ctype="x-html-a" html:href="https://en.wikipedia.org/wiki/ePUB">ePUB</g> (e-book) ya kitabu chako.<g id="genid-2" ctype="x-html-span" html:class="showForTalkingBooks">Ina sauti, ili wasomi waweze kusikiliza wanaposoma.</g>
       
-      
-      </target>
-        </alt-trans>
-        <alt-trans>
-          <target xml:lang="sw">Hii ni tafsiri ya  <g id="genid-1" ctype="x-html-a" html:href="https://en.wikipedia.org/wiki/ePUB">ePUB</g> (e-book) ya kitabu chako.<g id="genid-2" ctype="x-html-span" html:class="showForTalkingBooks">Ina sauti, ili wasomi waweze kusikiliza wanaposoma.</g>
       
       </target>
         </alt-trans>
@@ -75,6 +81,7 @@
       
       
       
+      
       </target>
         <note>ID: epubpreview.readium</note>
         <alt-trans>
@@ -84,6 +91,16 @@
       
       
       
+      
+      </target>
+        </alt-trans>
+        <alt-trans>
+          <target xml:lang="sw">Ukurasa huu hutumia kifaa cha kusoma cha  <g id="genid-3" ctype="x-html-a" html:href="http://readium.org/">Readium</g> ePUB.  Huenda vitabu vikaonekana kuwa tofauti kwa wasomaji tofauti.
+      
+      
+      
+      
+      
       </target>
         </alt-trans>
         <alt-trans>
@@ -104,11 +121,6 @@
         <alt-trans>
           <target xml:lang="sw">Ukurasa huu hutumia kifaa cha kusoma cha  <g id="genid-3" ctype="x-html-a" html:href="http://readium.org/">Readium</g> ePUB.  Huenda vitabu vikaonekana kuwa tofauti kwa wasomaji tofauti.
       
-      
-      </target>
-        </alt-trans>
-        <alt-trans>
-          <target xml:lang="sw">Ukurasa huu hutumia kifaa cha kusoma cha  <g id="genid-3" ctype="x-html-a" html:href="http://readium.org/">Readium</g> ePUB.  Huenda vitabu vikaonekana kuwa tofauti kwa wasomaji tofauti.
       
       </target>
         </alt-trans>
@@ -117,6 +129,7 @@
         <source xml:lang="en">The preview here cannot yet play Talking Books. You can listen to it using Adobe's Free <g id="genid-4" ctype="x-html-a" html:href="http://www.adobe.com/solutions/ebook/digital-editions.html">Digital Editions</g> e-book reader.
       </source>
         <target xml:lang="sw">Kwa kuonyesha hapa, bado haitawezekana kucheza Vitabu vilivyo na Sauti. Unaweza kuisikiza kwa kutumia <g id="genid-4" ctype="x-html-a" html:href="http://www.adobe.com/solutions/ebook/digital-editions.html">Digital Editions</g> ya bure ya Adobe.  Kifaa cha kusoma e-book.
+      
       
       
       
@@ -132,6 +145,16 @@
       
       
       
+      
+      </target>
+        </alt-trans>
+        <alt-trans>
+          <target xml:lang="sw">Kwa kuonyesha hapa, bado haitawezekana kucheza Vitabu vilivyo na Sauti. Unaweza kuisikiza kwa kutumia <g id="genid-4" ctype="x-html-a" html:href="http://www.adobe.com/solutions/ebook/digital-editions.html">Digital Editions</g> ya bure ya Adobe.  Kifaa cha kusoma e-book.
+      
+      
+      
+      
+      
       </target>
         </alt-trans>
         <alt-trans>
@@ -152,11 +175,6 @@
         <alt-trans>
           <target xml:lang="sw">Kwa kuonyesha hapa, bado haitawezekana kucheza Vitabu vilivyo na Sauti. Unaweza kuisikiza kwa kutumia <g id="genid-4" ctype="x-html-a" html:href="http://www.adobe.com/solutions/ebook/digital-editions.html">Digital Editions</g> ya bure ya Adobe.  Kifaa cha kusoma e-book.
       
-      
-      </target>
-        </alt-trans>
-        <alt-trans>
-          <target xml:lang="sw">Kwa kuonyesha hapa, bado haitawezekana kucheza Vitabu vilivyo na Sauti. Unaweza kuisikiza kwa kutumia <g id="genid-4" ctype="x-html-a" html:href="http://www.adobe.com/solutions/ebook/digital-editions.html">Digital Editions</g> ya bure ya Adobe.  Kifaa cha kusoma e-book.
       
       </target>
         </alt-trans>
@@ -176,6 +194,7 @@
       
       
       
+      
       </target>
         <note>ID: epubpreview.usingdropbox</note>
         <alt-trans>
@@ -185,6 +204,16 @@
       
       
       
+      
+      </target>
+        </alt-trans>
+        <alt-trans>
+          <target xml:lang="sw">Njia nzuri ya kutia kitabu kwenye simu yako ni kwa kuweka Dropbox au huduma sawa kwenye kompyuta yako na simu/tableti yako. bofya hifadhi ePUB na kisha uchague jalada lako la Dropbox. Kwenye simu yako, fungua Dropbox na uchague kitabu. Iwapo unatumia kipakatalishi, pia unaweza kujaribu programu isiyolipishwa ya <g id="genid-5" ctype="x-html-a" html:href="http://shareit.lenovo.com/">Shirikisha</g> ili kutuma faili kutoka kwa kipakatalishi chako hadi kwa simu au tableti.
+      
+      
+      
+      
+      
       </target>
         </alt-trans>
         <alt-trans>
@@ -205,11 +234,6 @@
         <alt-trans>
           <target xml:lang="sw">Njia nzuri ya kutia kitabu kwenye simu yako ni kwa kuweka Dropbox au huduma sawa kwenye kompyuta yako na simu/tableti yako. bofya hifadhi ePUB na kisha uchague jalada lako la Dropbox. Kwenye simu yako, fungua Dropbox na uchague kitabu. Iwapo unatumia kipakatalishi, pia unaweza kujaribu programu isiyolipishwa ya <g id="genid-5" ctype="x-html-a" html:href="http://shareit.lenovo.com/">Shirikisha</g> ili kutuma faili kutoka kwa kipakatalishi chako hadi kwa simu au tableti.
       
-      
-      </target>
-        </alt-trans>
-        <alt-trans>
-          <target xml:lang="sw">Njia nzuri ya kutia kitabu kwenye simu yako ni kwa kuweka Dropbox au huduma sawa kwenye kompyuta yako na simu/tableti yako. bofya hifadhi ePUB na kisha uchague jalada lako la Dropbox. Kwenye simu yako, fungua Dropbox na uchague kitabu. Iwapo unatumia kipakatalishi, pia unaweza kujaribu programu isiyolipishwa ya <g id="genid-5" ctype="x-html-a" html:href="http://shareit.lenovo.com/">Shirikisha</g> ili kutuma faili kutoka kwa kipakatalishi chako hadi kwa simu au tableti.
       
       </target>
         </alt-trans>
@@ -229,6 +253,7 @@
       
       
       
+      
       </target>
         <note>ID: epubpreview.gitden.okay</note>
         <alt-trans>
@@ -238,6 +263,16 @@
       
       
       
+      
+      </target>
+        </alt-trans>
+        <alt-trans>
+          <target xml:lang="sw">Majaribio yetu yameonyesha <g id="genid-6" ctype="x-html-a" html:href="/bloom/api/help/Concepts/Gitden_Reader.htm">Kifaa cha kusoma cha Gitden</g> kuwa chaguo nzuri kwa vifaa vya Androidi na IOS (IPhoni &amp; IPadi).
+      
+      
+      
+      
+      
       </target>
         </alt-trans>
         <alt-trans>
@@ -258,11 +293,6 @@
         <alt-trans>
           <target xml:lang="sw">Majaribio yetu yameonyesha <g id="genid-6" ctype="x-html-a" html:href="/bloom/api/help/Concepts/Gitden_Reader.htm">Kifaa cha kusoma cha Gitden</g> kuwa chaguo nzuri kwa vifaa vya Androidi na IOS (IPhoni &amp; IPadi).
       
-      
-      </target>
-        </alt-trans>
-        <alt-trans>
-          <target xml:lang="sw">Majaribio yetu yameonyesha <g id="genid-6" ctype="x-html-a" html:href="/bloom/api/help/Concepts/Gitden_Reader.htm">Kifaa cha kusoma cha Gitden</g> kuwa chaguo nzuri kwa vifaa vya Androidi na IOS (IPhoni &amp; IPadi).
       
       </target>
         </alt-trans>
@@ -288,6 +318,7 @@
       
       
       
+      
       </target>
         <note>ID: epubpreview.talking.book.tool</note>
         <alt-trans>
@@ -297,6 +328,16 @@
       
       
       
+      
+      </target>
+        </alt-trans>
+        <alt-trans>
+          <target xml:lang="sw">Iwapo ungependa kutengeneza "Kitabu kilicho na sauti" ambacho wasomi wa mara ya kwanza wanaweza kutumia wanaposoma, tumia'  <g id="genid-7" ctype="x-html-a" html:href="/bloom/api/help/Tasks/Edit_tasks/Record_Audio/Show_the_Talking_Book_Tool.htm">Kifaa cha Kitabu kilicho na Sauti</g> cha Bloom kuongeza sauti zilizorekodiwa.
+      
+      
+      
+      
+      
       </target>
         </alt-trans>
         <alt-trans>
@@ -317,11 +358,6 @@
         <alt-trans>
           <target xml:lang="sw">Iwapo ungependa kutengeneza "Kitabu kilicho na sauti" ambacho wasomi wa mara ya kwanza wanaweza kutumia wanaposoma, tumia'  <g id="genid-7" ctype="x-html-a" html:href="/bloom/api/help/Tasks/Edit_tasks/Record_Audio/Show_the_Talking_Book_Tool.htm">Kifaa cha Kitabu kilicho na Sauti</g> cha Bloom kuongeza sauti zilizorekodiwa.
       
-      
-      </target>
-        </alt-trans>
-        <alt-trans>
-          <target xml:lang="sw">Iwapo ungependa kutengeneza "Kitabu kilicho na sauti" ambacho wasomi wa mara ya kwanza wanaweza kutumia wanaposoma, tumia'  <g id="genid-7" ctype="x-html-a" html:href="/bloom/api/help/Tasks/Edit_tasks/Record_Audio/Show_the_Talking_Book_Tool.htm">Kifaa cha Kitabu kilicho na Sauti</g> cha Bloom kuongeza sauti zilizorekodiwa.
       
       </target>
         </alt-trans>
