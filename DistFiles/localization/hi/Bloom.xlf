@@ -2332,6 +2332,11 @@
         <note>ID: EditTab.Toolbox.SignLanguage.ImportVideo</note>
         <target xml:lang="hi" state="needs-translation">Import Video</target>
       </trans-unit>
+      <trans-unit id="EditTab.Toolbox.SignLanguage.NoCameraFound" sil:dynamic="true">
+        <source xml:lang="en">No camera found</source>
+        <note>ID: EditTab.Toolbox.SignLanguage.NoCameraFound</note>
+        <target xml:lang="hi" state="needs-translation">No camera found</target>
+      </trans-unit>
       <trans-unit id="EditTab.Toolbox.SignLanguage.PressCancel" sil:dynamic="true">
         <source xml:lang="en">Press any key to cancel</source>
         <note>ID: EditTab.Toolbox.SignLanguage.PressCancel</note>
