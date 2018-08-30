@@ -3905,6 +3905,12 @@ Enfin, relâchez la touche sur laquelle vous avez appuyé pour afficher cette li
           <target xml:lang="fr">Utilisez moins de mémoire ‎(plus lent‎)</target>
         </alt-trans>
       </trans-unit>
+      <trans-unit id="PublishTab.NoBookletsMessage">
+        <source xml:lang="en">Bloom cannot make booklets using the current page size.</source>
+        <note>ID: PublishTab.NoBookletsMessage</note>
+        <note>If a book has a paper size that is too big (like A4), Bloom does not know how to make booklets with it. So the controls for booklets get disabled and this message is shown.</note>
+        <target xml:lang="fr" state="needs-translation">Bloom cannot make booklets using the current page size.</target>
+      </trans-unit>
       <trans-unit id="PublishTab.Notifications.AdobeReaderRecommendation" approved="yes">
         <source xml:lang="en">This PDF viewer can be improved by installing the free Adobe Reader on this computer.</source>
         <note>ID: PublishTab.Notifications.AdobeReaderRecommendation</note>
