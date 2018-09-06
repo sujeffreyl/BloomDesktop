@@ -2133,9 +2133,9 @@
         <note>ID: EditTab.TitleOfCopyIPToWholeBooksDialog</note>
         <target xml:lang="prs">معلومات ملکیت معنوی عکس</target>
       </trans-unit>
-      <trans-unit id="EditTab.Toolbox.ImpairmentVisualizerTool" sil:dynamic="true">
+      <trans-unit id="EditTab.Toolbox.ImpairmentVisualizer" sil:dynamic="true">
         <source xml:lang="en">Impairment Visualizer</source>
-        <note>ID: EditTab.Toolbox.ImpairmentVisualizerTool</note>
+        <note>ID: EditTab.Toolbox.ImpairmentVisualizer</note>
         <target xml:lang="prs" state="needs-translation">Impairment Visualizer</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.ImpairmentVisualizer.BlueYellow" sil:dynamic="true">
