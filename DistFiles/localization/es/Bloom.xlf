@@ -16,7 +16,7 @@
       <trans-unit id="AccessibilityCheck.audioForAllText">
         <source xml:lang="en">Audio for all text</source>
         <note>ID: AccessibilityCheck.audioForAllText</note>
-        <target xml:lang="es-ES" state="needs-translation">Audio for all text</target>
+        <target xml:lang="es-ES" state="translated">Audio para todo el texto</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.audioForAllImageDescriptions">
         <source xml:lang="en">Audio for all image descriptions</source>
