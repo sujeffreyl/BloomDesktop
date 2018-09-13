@@ -323,12 +323,12 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.subjects" sil:dynamic="true">
         <source xml:lang="en">Subjects</source>
         <note>ID: BookMetadata.subjects</note>
-        <target xml:lang="es-ES" state="needs-translation">Subjects</target>
+        <target xml:lang="es-ES" state="translated">Temas</target>
       </trans-unit>
       <trans-unit id="BookMetadata.typicalAgeRange" sil:dynamic="true">
         <source xml:lang="en">Typical age range</source>
         <note>ID: BookMetadata.typicalAgeRange</note>
-        <target xml:lang="es-ES" state="needs-translation">Typical age range</target>
+        <target xml:lang="es-ES" state="translated">Rango típico de edades</target>
       </trans-unit>
       <trans-unit id="BookStorage.CorruptBook" approved="yes">
         <source xml:lang="en">Bloom had a problem reading this book and recovered by restoring a recent backup. Please check recent changes to this book. If this happens for no obvious reason, please click Details below and report it to us.</source>
@@ -368,7 +368,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="Browser.ProblemSaving">
         <source xml:lang="en">There was a problem while saving. Please return to the previous page and make sure it looks correct.</source>
         <note>ID: Browser.ProblemSaving</note>
-        <target xml:lang="es-ES" state="needs-translation">There was a problem while saving. Please return to the previous page and make sure it looks correct.</target>
+        <target xml:lang="es-ES" state="translated">Hubo un problema al guardar su libro. Por favor regrese a la página anterior para verificar que todo parece correcto.</target>
       </trans-unit>
       <trans-unit id="CollectionSettingsDialog.AboutBloomEnterprise" approved="yes">
         <source xml:lang="en">About the Bloom Enterprise Service</source>
@@ -1476,12 +1476,12 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="Common.Preview">
         <source xml:lang="en">Preview</source>
         <note>ID: Common.Preview</note>
-        <target xml:lang="es-ES" state="needs-translation">Preview</target>
+        <target xml:lang="es-ES" state="translated">Vista previa</target>
       </trans-unit>
       <trans-unit id="Common.Progress">
         <source xml:lang="en">Progress</source>
         <note>ID: Common.Progress</note>
-        <target xml:lang="es-ES" state="needs-translation">Progress</target>
+        <target xml:lang="es-ES" state="translated">Progreso</target>
       </trans-unit>
       <trans-unit id="Common.SeeWebPage" approved="yes">
         <source xml:lang="en">See {0}.</source>
@@ -1492,7 +1492,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="Common.Settings">
         <source xml:lang="en">Settings</source>
         <note>ID: Common.Settings</note>
-        <target xml:lang="es-ES" state="needs-translation">Settings</target>
+        <target xml:lang="es-ES" state="translated">Configuración</target>
       </trans-unit>
       <trans-unit id="Download.Completed" approved="yes">
         <source xml:lang="en">Your download ({0}) is complete. You can see it in the 'Books from BloomLibrary.org' section of your Collections.</source>
