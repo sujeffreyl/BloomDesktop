@@ -53,7 +53,7 @@
       <trans-unit id="AccessibilityCheck.noEssentialInfoByColor">
         <source xml:lang="en">No essential information by color</source>
         <note>ID: AccessibilityCheck.noEssentialInfoByColor</note>
-        <target xml:lang="es-ES" state="needs-translation">No essential information by color</target>
+        <target xml:lang="es-ES" state="translated">No hay información esencial por color</target>
       </trans-unit>
       <trans-unit id="BloomIntegrity.WindowTitle" approved="yes">
         <source xml:lang="en">Bloom Problem</source>
@@ -268,12 +268,18 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.flashingHazard" sil:dynamic="true">
         <source xml:lang="en">Flashing Hazard</source>
         <note>ID: BookMetadata.flashingHazard</note>
-        <target xml:lang="es-ES" state="needs-translation">Flashing Hazard</target>
+        <target xml:lang="es-ES" state="translated">Peligro: Imágenes parpadeantes</target>
+        <alt-trans>
+          <target xml:lang="es-ES">Precaución: Imágenes parpadeantes</target>
+        </alt-trans>
       </trans-unit>
       <trans-unit id="BookMetadata.hazards" sil:dynamic="true">
         <source xml:lang="en">Hazards</source>
         <note>ID: BookMetadata.hazards</note>
-        <target xml:lang="es-ES" state="needs-translation">Hazards</target>
+        <target xml:lang="es-ES" state="translated">Peligros</target>
+        <alt-trans>
+          <target xml:lang="es-ES">Precauciones</target>
+        </alt-trans>
       </trans-unit>
       <trans-unit id="BookMetadata.inLanguage" sil:dynamic="true">
         <source xml:lang="en">Language</source>
@@ -298,7 +304,10 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.motionSimulationHazard" sil:dynamic="true">
         <source xml:lang="en">Motion Simulation Hazard</source>
         <note>ID: BookMetadata.motionSimulationHazard</note>
-        <target xml:lang="es-ES" state="needs-translation">Motion Simulation Hazard</target>
+        <target xml:lang="es-ES" state="translated">Peligro: Movimiento simulado</target>
+        <alt-trans>
+          <target xml:lang="es-ES">Precaución: Movimiento simulado</target>
+        </alt-trans>
       </trans-unit>
       <trans-unit id="BookMetadata.name" sil:dynamic="true">
         <source xml:lang="en">Name</source>
@@ -318,7 +327,10 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.soundHazard" sil:dynamic="true">
         <source xml:lang="en">Sound Hazard</source>
         <note>ID: BookMetadata.soundHazard</note>
-        <target xml:lang="es-ES" state="needs-translation">Sound Hazard</target>
+        <target xml:lang="es-ES" state="translated">Peligro: Sonido</target>
+        <alt-trans>
+          <target xml:lang="es-ES">Precaución: Sonido</target>
+        </alt-trans>
       </trans-unit>
       <trans-unit id="BookMetadata.subjects" sil:dynamic="true">
         <source xml:lang="en">Subjects</source>
@@ -5212,7 +5224,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
         <source xml:lang="en">Bloom cannot make booklets using the current page size.</source>
         <note>ID: PublishTab.NoBookletsMessage</note>
         <note>If a book has a paper size that is too big (like A4), Bloom does not know how to make booklets with it. So the controls for booklets get disabled and this message is shown.</note>
-        <target xml:lang="es-ES" state="needs-translation">Bloom cannot make booklets using the current page size.</target>
+        <target xml:lang="es-ES" state="translated">Bloom no puede crear libritos usando el tamaño de página actual.</target>
       </trans-unit>
       <trans-unit id="PublishTab.Notifications.AdobeReaderRecommendation" approved="yes">
         <source xml:lang="en">This PDF viewer can be improved by installing the free Adobe Reader on this computer.</source>
