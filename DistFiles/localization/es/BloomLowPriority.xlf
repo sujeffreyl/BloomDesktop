@@ -5,32 +5,32 @@
       <trans-unit id="Settings.Enterprise.Community">
         <source xml:lang="en">Funded by the local community only</source>
         <note>ID: Settings.Enterprise.Community</note>
-        <target xml:lang="es-ES" state="needs-translation">Funded by the local community only</target>
+        <target xml:lang="es-ES" state="translated">Patrocinado únicamente por la comunidad local</target>
       </trans-unit>
       <trans-unit id="Settings.Enterprise.CheckUpdates">
         <source xml:lang="en">Check for updates</source>
         <note>ID: Settings.Enterprise.CheckUpdates</note>
-        <target xml:lang="es-ES" state="needs-translation">Check for updates</target>
+        <target xml:lang="es-ES" state="translated">Buscar actualizaciones</target>
       </trans-unit>
       <trans-unit id="Settings.Enterprise.Expiration">
         <source xml:lang="en">That code has expired.</source>
         <note>ID: Settings.Enterprise.Expiration</note>
-        <target xml:lang="es-ES" state="needs-translation">That code has expired.</target>
+        <target xml:lang="es-ES" state="translated">Ese código ya expiró.</target>
       </trans-unit>
       <trans-unit id="Settings.Enterprise.Expired">
         <source xml:lang="en">Expires:</source>
         <note>ID: Settings.Enterprise.Expired</note>
-        <target xml:lang="es-ES" state="needs-translation">Expires:</target>
+        <target xml:lang="es-ES" state="translated">Expira:</target>
       </trans-unit>
       <trans-unit id="Settings.Enterprise.Incomplete">
         <source xml:lang="en"> The code should look like SOMENAME-123456-7890</source>
         <note>ID: Settings.Enterprise.Incomplete</note>
-        <target xml:lang="es-ES" state="needs-translation"> The code should look like SOMENAME-123456-7890</target>
+        <target xml:lang="es-ES" state="translated"> El código debe tener el formato ALGÚNOMBRE-123456-7890</target>
       </trans-unit>
       <trans-unit id="Settings.Enterprise.LearnMore">
         <source xml:lang="en">Learn More</source>
         <note>ID: Settings.Enterprise.LearnMore</note>
-        <target xml:lang="es-ES" state="needs-translation">Learn More</target>
+        <target xml:lang="es-ES" state="translated">Aprender más</target>
       </trans-unit>
       <trans-unit id="Settings.Enterprise.Overview">
         <source xml:lang="en">
