@@ -21,34 +21,34 @@
       <trans-unit id="AccessibilityCheck.audioForAllImageDescriptions">
         <source xml:lang="en">Audio for all image descriptions</source>
         <note>ID: AccessibilityCheck.audioForAllImageDescriptions</note>
-        <target xml:lang="es-ES" state="needs-translation">Audio for all image descriptions</target>
+        <target xml:lang="es-ES" state="translated">Audio para todas las descripciones de imágenes</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.AutomaticChecksHeading">
         <source xml:lang="en">Bloom can automatically check these for you:</source>
         <note>ID: AccessibilityCheck.AutomaticChecksHeading</note>
-        <target xml:lang="es-ES" state="needs-translation">Bloom can automatically check these for you:</target>
+        <target xml:lang="es-ES" state="translated">Bloom se los puede verificar automáticamente:</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.Checklist">
         <source xml:lang="en">Accessibility Checklist</source>
         <note>ID: AccessibilityCheck.Checklist</note>
         <note>Used as the name on a tab of the Accessibility Checks screen.</note>
-        <target xml:lang="es-ES" state="needs-translation">Accessibility Checklist</target>
+        <target xml:lang="es-ES" state="translated">Lista de verificación para accesibilidad</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.descriptionsForAllImages">
         <source xml:lang="en">Descriptions for all images</source>
         <note>ID: AccessibilityCheck.descriptionsForAllImages</note>
-        <target xml:lang="es-ES" state="needs-translation">Descriptions for all images</target>
+        <target xml:lang="es-ES" state="translated">Descripciones para todas las imágenes</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.LearnAbout">
         <source xml:lang="en">Learn About Accessibility</source>
         <note>ID: AccessibilityCheck.LearnAbout</note>
         <note>Used as the name on a tab of the Accessibility Checks screen.</note>
-        <target xml:lang="es-ES" state="needs-translation">Learn About Accessibility</target>
+        <target xml:lang="es-ES" state="translated">Aprender más sobre accesibilidad</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.ManualChecksHeading">
         <source xml:lang="en">You need to check these yourself:</source>
         <note>ID: AccessibilityCheck.ManualChecksHeading</note>
-        <target xml:lang="es-ES" state="needs-translation">You need to check these yourself:</target>
+        <target xml:lang="es-ES" state="translated">Debe verificarlos por si mismo:</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.noEssentialInfoByColor">
         <source xml:lang="en">No essential information by color</source>
@@ -253,17 +253,17 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.a11yFeatures" sil:dynamic="true">
         <source xml:lang="en">Accessibility features</source>
         <note>ID: BookMetadata.a11yFeatures</note>
-        <target xml:lang="es-ES" state="needs-translation">Accessibility features</target>
+        <target xml:lang="es-ES" state="translated">Funciones de accesibilidad</target>
       </trans-unit>
       <trans-unit id="BookMetadata.alternativeText" sil:dynamic="true">
         <source xml:lang="en">Alternative text</source>
         <note>ID: BookMetadata.alternativeText</note>
-        <target xml:lang="es-ES" state="needs-translation">Alternative text</target>
+        <target xml:lang="es-ES" state="translated">Texto alternativo</target>
       </trans-unit>
       <trans-unit id="BookMetadata.author" sil:dynamic="true">
         <source xml:lang="en">Author</source>
         <note>ID: BookMetadata.author</note>
-        <target xml:lang="es-ES" state="needs-translation">Author</target>
+        <target xml:lang="es-ES" state="translated">Autor</target>
       </trans-unit>
       <trans-unit id="BookMetadata.flashingHazard" sil:dynamic="true">
         <source xml:lang="en">Flashing Hazard</source>
@@ -278,22 +278,22 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.inLanguage" sil:dynamic="true">
         <source xml:lang="en">Language</source>
         <note>ID: BookMetadata.inLanguage</note>
-        <target xml:lang="es-ES" state="needs-translation">Language</target>
+        <target xml:lang="es-ES" state="translated">Idioma</target>
       </trans-unit>
       <trans-unit id="BookMetadata.level" sil:dynamic="true">
         <source xml:lang="en">Reading level</source>
         <note>ID: BookMetadata.level</note>
-        <target xml:lang="es-ES" state="needs-translation">Reading level</target>
+        <target xml:lang="es-ES" state="translated">Nivel de lectura</target>
       </trans-unit>
       <trans-unit id="BookMetadata.License" sil:dynamic="true">
         <source xml:lang="en">License</source>
         <note>ID: BookMetadata.License</note>
-        <target xml:lang="es-ES" state="needs-translation">License</target>
+        <target xml:lang="es-ES" state="translated">Licencia</target>
       </trans-unit>
       <trans-unit id="BookMetadata.metapicture" sil:dynamic="true">
         <source xml:lang="en">Picture</source>
         <note>ID: BookMetadata.metapicture</note>
-        <target xml:lang="es-ES" state="needs-translation">Picture</target>
+        <target xml:lang="es-ES" state="translated">Imagen</target>
       </trans-unit>
       <trans-unit id="BookMetadata.motionSimulationHazard" sil:dynamic="true">
         <source xml:lang="en">Motion Simulation Hazard</source>
@@ -303,17 +303,17 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="BookMetadata.name" sil:dynamic="true">
         <source xml:lang="en">Name</source>
         <note>ID: BookMetadata.name</note>
-        <target xml:lang="es-ES" state="needs-translation">Name</target>
+        <target xml:lang="es-ES" state="translated">Nombre</target>
       </trans-unit>
       <trans-unit id="BookMetadata.numberOfPages" sil:dynamic="true">
         <source xml:lang="en">Number of pages</source>
         <note>ID: BookMetadata.numberOfPages</note>
-        <target xml:lang="es-ES" state="needs-translation">Number of pages</target>
+        <target xml:lang="es-ES" state="translated">Número de páginas</target>
       </trans-unit>
       <trans-unit id="BookMetadata.signLanguage" sil:dynamic="true">
         <source xml:lang="en">Sign Language</source>
         <note>ID: BookMetadata.signLanguage</note>
-        <target xml:lang="es-ES" state="needs-translation">Sign Language</target>
+        <target xml:lang="es-ES" state="translated">Lenguaje de señas</target>
       </trans-unit>
       <trans-unit id="BookMetadata.soundHazard" sil:dynamic="true">
         <source xml:lang="en">Sound Hazard</source>
