@@ -5,13 +5,13 @@
       <trans-unit id="AccessibilityCheck.AccessibilityChecker">
         <source xml:lang="en">Accessibility Checker</source>
         <note>ID: AccessibilityCheck.AccessibilityChecker</note>
-        <target xml:lang="es-ES" state="needs-translation">Accessibility Checker</target>
+        <target xml:lang="es-ES" state="translated">Verificador de accesibilidad</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.ACEByDaisy">
         <source xml:lang="en">ACE by Daisy Automated Checks</source>
         <note>ID: AccessibilityCheck.ACEByDaisy</note>
         <note>Used as the name on a tab of the Accessibility Checks screen.</note>
-        <target xml:lang="es-ES" state="needs-translation">ACE by Daisy Automated Checks</target>
+        <target xml:lang="es-ES" state="translated">Verificaciones automáticas de "Ace by Daisy"</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.audioForAllText">
         <source xml:lang="en">Audio for all text</source>
@@ -3411,7 +3411,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
         <source xml:lang="en">Requires Bloom Enterprise Subscription.</source>
         <note>ID: EditTab.Toolbox.RequiresEnterprise</note>
         <note>Appears in place of other controls when they may not be used because no Bloom Enterprise project has been selected.</note>
-        <target xml:lang="es-ES" state="needs-translation">Requires Bloom Enterprise Subscription.</target>
+        <target xml:lang="es-ES" state="translated">Require suscripción a Bloom Empresarial.</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.Settings.Unlock" sil:dynamic="true" approved="yes">
         <source xml:lang="en">Allow changes to this shellbook</source>
@@ -3441,7 +3441,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="EditTab.Toolbox.SignLanguage.DeleteVideo" sil:dynamic="true">
         <source xml:lang="en">Delete Video</source>
         <note>ID: EditTab.Toolbox.SignLanguage.DeleteVideo</note>
-        <target xml:lang="es-ES" state="needs-translation">Delete Video</target>
+        <target xml:lang="es-ES" state="translated">Borrar vídeo</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.SignLanguage.EditOutside" sil:dynamic="true">
         <source xml:lang="en">Edit outside of Bloom</source>
@@ -3451,17 +3451,20 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="EditTab.Toolbox.SignLanguage.FileDialogVideoFiles">
         <source xml:lang="en">Video Files</source>
         <note>ID: EditTab.Toolbox.SignLanguage.FileDialogVideoFiles</note>
-        <target xml:lang="es-ES" state="needs-translation">Video Files</target>
+        <target xml:lang="es-ES" state="translated">Archivos de vídeo</target>
+        <alt-trans>
+          <target xml:lang="es-ES">Archivos de video</target>
+        </alt-trans>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.SignLanguage.ImportVideo" sil:dynamic="true">
         <source xml:lang="en">Import Video</source>
         <note>ID: EditTab.Toolbox.SignLanguage.ImportVideo</note>
-        <target xml:lang="es-ES" state="needs-translation">Import Video</target>
+        <target xml:lang="es-ES" state="translated">Importar vídeo</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.SignLanguage.NoCameraFound" sil:dynamic="true">
         <source xml:lang="en">No camera found</source>
         <note>ID: EditTab.Toolbox.SignLanguage.NoCameraFound</note>
-        <target xml:lang="es-ES" state="needs-translation">No camera found</target>
+        <target xml:lang="es-ES" state="translated">Cámara no encontrada</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.SignLanguage.PressCancel" sil:dynamic="true">
         <source xml:lang="en">Press any key to cancel</source>
@@ -3487,7 +3490,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
         <source xml:lang="en">The selected video</source>
         <note>ID: EditTab.Toolbox.SignLanguage.SelectedVideo</note>
         <note>Appears in the context "X will be moved to the recycle bin"</note>
-        <target xml:lang="es-ES" state="needs-translation">The selected video</target>
+        <target xml:lang="es-ES" state="translated">El vídeo seleccionado</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.SignLanguage.StartRecording" sil:dynamic="true">
         <source xml:lang="en">Start Recording</source>
@@ -3502,7 +3505,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="EditTab.Toolbox.SignLanguageTool" sil:dynamic="true">
         <source xml:lang="en">Sign Language Tool</source>
         <note>ID: EditTab.Toolbox.SignLanguageTool</note>
-        <target xml:lang="es-ES" state="needs-translation">Sign Language Tool</target>
+        <target xml:lang="es-ES" state="translated">Herramienta de lenguaje de señas</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.TalkingBook.BadState" approved="yes">
         <source xml:lang="en">Bloom recording is in an unusual state, possibly caused by unplugging a microphone. You will need to restart.</source>
@@ -5046,7 +5049,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
         <source xml:lang="en">Book Metadata</source>
         <note>ID: PublishTab.BookMetadata</note>
         <note>This link opens a dialog box that lets you put in information someone (often a librarian) might use to search for a book with particular characteristics.</note>
-        <target xml:lang="es-ES" state="needs-translation">Book Metadata</target>
+        <target xml:lang="es-ES" state="translated">Metadados del libro</target>
       </trans-unit>
       <trans-unit id="PublishTab.ButtonThatShowsUploadForm" approved="yes">
         <source xml:lang="en">Share on the Web</source>
@@ -5098,7 +5101,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
         <source xml:lang="en">Accessibility</source>
         <note>ID: PublishTab.Epub.Accessibility</note>
         <note>Here, the English 'Accessibility' is a common way of refering to technologies that are usable by people with disabilities. With computers, this usually means people with visual impairments. It includes botht he blind and people who might need text to be larger, or who are colorblind, etc.</note>
-        <target xml:lang="es-ES" state="needs-translation">Accessibility</target>
+        <target xml:lang="es-ES" state="translated">Accesibilidad</target>
       </trans-unit>
       <trans-unit id="PublishTab.Epub.Done">
         <source xml:lang="en">Done</source>
@@ -5108,17 +5111,17 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="PublishTab.Epub.Help.AboutEpubs">
         <source xml:lang="en">About ePUBs</source>
         <note>ID: PublishTab.Epub.Help.AboutEpubs</note>
-        <target xml:lang="es-ES" state="needs-translation">About ePUBs</target>
+        <target xml:lang="es-ES" state="translated">Acerca de los ePUBs</target>
       </trans-unit>
       <trans-unit id="PublishTab.Epub.Help.EReaders">
         <source xml:lang="en">Compatible ePUB Readers</source>
         <note>ID: PublishTab.Epub.Help.EReaders</note>
-        <target xml:lang="es-ES" state="needs-translation">Compatible ePUB Readers</target>
+        <target xml:lang="es-ES" state="translated">Lectores compatibles para ePUB</target>
       </trans-unit>
       <trans-unit id="PublishTab.Epub.Help.Publishing">
         <source xml:lang="en">Getting ePUBs onto a device</source>
         <note>ID: PublishTab.Epub.Help.Publishing</note>
-        <target xml:lang="es-ES" state="needs-translation">Getting ePUBs onto a device</target>
+        <target xml:lang="es-ES" state="translated">Cargando los ePUBs a un dispositivo</target>
       </trans-unit>
       <!-- "PublishTab.Epub.ImageDescriptionLinkLabel might go here if we restore BL-6017 image description links -->
       <trans-unit id="PublishTab.Epub.IncludeOnPage">
@@ -5136,7 +5139,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
         <source xml:lang="en">Content</source>
         <note>ID: PublishTab.Epub.PageLabel.Content</note>
         <note>label for the book content in the ePUB's Table of Contents</note>
-        <target xml:lang="es-ES" state="needs-translation">Content</target>
+        <target xml:lang="es-ES" state="translated">Contenido</target>
       </trans-unit>
       <trans-unit id="PublishTab.Epub.PreparingDoc">
         <source xml:lang="en">Preparing document</source>
@@ -5151,7 +5154,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="PublishTab.Epub.RemoveFontSizes">
         <source xml:lang="en">Use ePUB reader's text size</source>
         <note>ID: PublishTab.Epub.RemoveFontSizes</note>
-        <target xml:lang="es-ES" state="needs-translation">Use ePUB reader's text size</target>
+        <target xml:lang="es-ES" state="translated">Utilizar el tamaño de fuente del lector de ePUB</target>
       </trans-unit>
       <trans-unit id="PublishTab.Epub.Saving">
         <source xml:lang="en">Saving</source>
@@ -5161,7 +5164,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="PublishTab.Epub.Title">
         <source xml:lang="en">Create an ePUB book</source>
         <note>ID: PublishTab.Epub.Title</note>
-        <target xml:lang="es-ES" state="needs-translation">Create an ePUB book</target>
+        <target xml:lang="es-ES" state="translated">Crear un libro ePUB</target>
       </trans-unit>
       <trans-unit id="PublishTab.EpubButton" approved="yes">
         <source xml:lang="en">ePUB</source>
