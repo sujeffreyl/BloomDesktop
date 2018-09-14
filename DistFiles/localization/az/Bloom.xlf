@@ -37,7 +37,7 @@
       <trans-unit id="AccessibilityCheck.descriptionsForAllImages">
         <source xml:lang="en">Descriptions for all images</source>
         <note>ID: AccessibilityCheck.descriptionsForAllImages</note>
-        <target xml:lang="az" state="needs-translation">Descriptions for all images</target>
+        <target xml:lang="az" state="translated">Bütün şəkillərinin təsvirləri</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.LearnAbout">
         <source xml:lang="en">Learn About Accessibility</source>
