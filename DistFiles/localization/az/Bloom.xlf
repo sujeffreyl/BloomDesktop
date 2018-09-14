@@ -48,7 +48,7 @@
       <trans-unit id="AccessibilityCheck.ManualChecksHeading">
         <source xml:lang="en">You need to check these yourself:</source>
         <note>ID: AccessibilityCheck.ManualChecksHeading</note>
-        <target xml:lang="az" state="needs-translation">You need to check these yourself:</target>
+        <target xml:lang="az" state="translated">Bunları siz özünüz yoxlamalısız:</target>
       </trans-unit>
       <trans-unit id="AccessibilityCheck.noEssentialInfoByColor">
         <source xml:lang="en">No essential information by color</source>
@@ -204,7 +204,7 @@
       <trans-unit id="BookMetadata.author" sil:dynamic="true">
         <source xml:lang="en">Author</source>
         <note>ID: BookMetadata.author</note>
-        <target xml:lang="az" state="needs-translation">Author</target>
+        <target xml:lang="az" state="translated">Müəllif</target>
       </trans-unit>
       <trans-unit id="BookMetadata.flashingHazard" sil:dynamic="true">
         <source xml:lang="en">Flashing Hazard</source>
@@ -219,17 +219,17 @@
       <trans-unit id="BookMetadata.inLanguage" sil:dynamic="true">
         <source xml:lang="en">Language</source>
         <note>ID: BookMetadata.inLanguage</note>
-        <target xml:lang="az" state="needs-translation">Language</target>
+        <target xml:lang="az" state="translated">Dil</target>
       </trans-unit>
       <trans-unit id="BookMetadata.level" sil:dynamic="true">
         <source xml:lang="en">Reading level</source>
         <note>ID: BookMetadata.level</note>
-        <target xml:lang="az" state="needs-translation">Reading level</target>
+        <target xml:lang="az" state="translated">Oxumaq seviyyəsi</target>
       </trans-unit>
       <trans-unit id="BookMetadata.License" sil:dynamic="true">
         <source xml:lang="en">License</source>
         <note>ID: BookMetadata.License</note>
-        <target xml:lang="az" state="needs-translation">License</target>
+        <target xml:lang="az" state="translated">Lisenziya</target>
       </trans-unit>
       <trans-unit id="BookMetadata.metapicture" sil:dynamic="true">
         <source xml:lang="en">Picture</source>
