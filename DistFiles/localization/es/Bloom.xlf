@@ -2962,7 +2962,7 @@ Luego suelte la tecla que apretó para mostrar esta lista.</target>
       <trans-unit id="EditTab.Toolbox.ImpairmentVisualizer.Complete" sil:dynamic="true">
         <source xml:lang="en">Complete</source>
         <note>ID: EditTab.Toolbox.ImpairmentVisualizer.Complete</note>
-        <target xml:lang="es-ES" state="translated">Completado</target>
+        <target xml:lang="es-ES" state="translated">Total (acromático)</target>
       </trans-unit>
       <trans-unit id="EditTab.Toolbox.ImpairmentVisualizer.Overview" sil:dynamic="true">
         <source xml:lang="en">You can use these check boxes to have Bloom simulate how your images would look with various visual impairments.</source>
