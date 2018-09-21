@@ -164,10 +164,41 @@
         <note>ID: BookEditor.FormattingDisabled</note>
         <target xml:lang="ha">Yi haƙuri, Muhallin Maikaratu ba ya bayar da damar yin canje-canje don shirin ba.</target>
       </trans-unit>
+      <trans-unit id="BookMetadata.a11yCertifier" sil:dynamic="true">
+        <source xml:lang="en">Level certified by</source>
+        <note>ID: BookMetadata.a11yCertifier</note>
+        <target xml:lang="ha" state="needs-translation">Level certified by</target>
+      </trans-unit>
       <trans-unit id="BookMetadata.a11yFeatures" sil:dynamic="true">
         <source xml:lang="en">Accessibility features</source>
         <note>ID: BookMetadata.a11yFeatures</note>
         <target xml:lang="ha" state="needs-translation">Accessibility features</target>
+      </trans-unit>
+      <trans-unit id="BookMetadata.a11yLevel" sil:dynamic="true">
+        <source xml:lang="en">Accessibility level</source>
+        <note>ID: BookMetadata.a11yLevel</note>
+        <target xml:lang="ha" state="needs-translation">Accessibility level</target>
+      </trans-unit>
+      <trans-unit id="BookMetadata.a11yLevelNone" sil:dynamic="true">
+        <source xml:lang="en">None</source>
+        <note>ID: BookMetadata.a11yLevelNone</note>
+        <note>indicates that no level of accessibility conformance is claimed</note>
+        <target xml:lang="ha" state="needs-translation">None</target>
+      </trans-unit>
+      <trans-unit id="BookMetadata.a11yLevelA" sil:dynamic="true">
+        <source xml:lang="en">Level A conformance</source>
+        <note>ID: BookMetadata.a11yLevelA</note>
+        <target xml:lang="ha" state="needs-translation">Level A conformance</target>
+      </trans-unit>
+      <trans-unit id="BookMetadata.a11yLevelAA" sil:dynamic="true">
+        <source xml:lang="en">Level AA conformance</source>
+        <note>ID: BookMetadata.a11yLevelAA</note>
+        <target xml:lang="ha" state="needs-translation">Level AA conformance</target>
+      </trans-unit>
+      <trans-unit id="BookMetadata.a11yLevelAAA" sil:dynamic="true">
+        <source xml:lang="en">Level AAA conformance</source>
+        <note>ID: BookMetadata.a11yLevelAAA</note>
+        <target xml:lang="ha" state="needs-translation">Level AAA conformance</target>
       </trans-unit>
       <trans-unit id="BookMetadata.alternativeText" sil:dynamic="true">
         <source xml:lang="en">Alternative text</source>
@@ -243,6 +274,12 @@
         <source xml:lang="en">Typical age range</source>
         <note>ID: BookMetadata.typicalAgeRange</note>
         <target xml:lang="ha" state="needs-translation">Typical age range</target>
+      </trans-unit>
+      <trans-unit id="BookMetadata.WhatsThis" sil:dynamic="true">
+        <source xml:lang="en">What's this?</source>
+        <note>ID: BookMetadata.WhatsThis</note>
+        <note>minimal question indicating a link to information</note>
+        <target xml:lang="ha" state="needs-translation">What's this?</target>
       </trans-unit>
       <trans-unit id="BookStorage.CorruptBook">
         <source xml:lang="en">Bloom had a problem reading this book and recovered by restoring a recent backup. Please check recent changes to this book. If this happens for no obvious reason, please click Details below and report it to us.</source>
