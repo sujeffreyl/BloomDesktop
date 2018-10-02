@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="leveled.reader.vocabulary" approved="yes">
         <source xml:lang="en">Vocabulary</source>
-        <target xml:lang="pt-PT">Vocabulário</target>
+        <target xml:lang="pt-PT" state="translated">Vocabulário</target>
         <note>ID: leveled.reader.vocabulary</note>
       </trans-unit>
       <trans-unit id="leveled.reader.start.simple">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="leveled.reader.formatting" approved="yes">
         <source xml:lang="en">Formatting</source>
-        <target xml:lang="pt-PT">Formatação</target>
+        <target xml:lang="pt-PT" state="translated">Formatação</target>
         <note>ID: leveled.reader.formatting</note>
       </trans-unit>
       <trans-unit id="leveled.reader.start.large">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="leveled.reader.predictability" approved="yes">
         <source xml:lang="en">Predictability</source>
-        <target xml:lang="pt-PT">Previsibilidade</target>
+        <target xml:lang="pt-PT" state="translated">Previsibilidade</target>
         <note>ID: leveled.reader.predictability</note>
       </trans-unit>
       <trans-unit id="leveled.reader.repeat.patterns">
@@ -377,7 +377,7 @@ Contra os rigores da vida.
       </trans-unit>
       <trans-unit id="leveled.reader.illustrations" approved="yes">
         <source xml:lang="en">Illustration Support</source>
-        <target xml:lang="pt-PT">Suporte de ilustração</target>
+        <target xml:lang="pt-PT" state="translated">Suporte de ilustração</target>
         <note>ID: leveled.reader.illustrations</note>
       </trans-unit>
       <trans-unit id="leveled.reader.illustrations.help">
