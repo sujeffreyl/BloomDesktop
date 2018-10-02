@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="training.videos.advanced" approved="yes">
         <source xml:lang="en">Advanced Topics</source>
-        <target xml:lang="tr">İleri düzey Konular</target>
+        <target xml:lang="tr" state="translated">İleri düzey Konular</target>
         <note>ID: training.videos.advanced</note>
       </trans-unit>
       <trans-unit id="training.videos.formatting">
