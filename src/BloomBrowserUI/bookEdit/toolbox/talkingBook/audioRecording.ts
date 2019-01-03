@@ -481,11 +481,85 @@ export default class AudioRecording {
 
     // 'Listen' is shorthand for playing all the sentences on the page in sequence.
     public listen(): void {
+        this.listenMock();
+        // var original: JQuery = this.getPageDocBody().find(".ui-audioCurrent");
+        // var audioElts = this.getAudioElements();
+        // if (original.length === 0 || audioElts.length === 0) return;
+        // var first = audioElts.eq(0);
+        // this.setCurrentAudioElement(original, first, true);
+        // this.playingAll = true;
+        // this.setStatus("listen", Status.Active);
+        // this.playCurrentInternal();
+    }
+
+    public listenMock(): void {
         var original: JQuery = this.getPageDocBody().find(".ui-audioCurrent");
         var audioElts = this.getAudioElements();
         if (original.length === 0 || audioElts.length === 0) return;
         var first = audioElts.eq(0);
+
+        const firstElement = first.get(0);
+        let sentenceIndex: number = 0;
+        let prevIndex: number = 0;
+        let newHtml: string =
+            "<p><span class='audio-phrase ui-audioCurrent' id='audioPhraseId" +
+            sentenceIndex +
+            "'>";
+        ++sentenceIndex;
+        let index: number = firstElement.innerText.indexOf(". ", prevIndex);
+        while (index >= 0) {
+            newHtml += firstElement.innerText.substring(prevIndex, index + 2);
+            newHtml +=
+                "</span><span class='audio-phrase' id='audioPhraseId" +
+                sentenceIndex +
+                "'>";
+            prevIndex = index + 2;
+            index = firstElement.innerText.indexOf(". ", prevIndex);
+
+            let timeoutDuration = 0;
+            if (sentenceIndex <= 0) {
+                timeoutDuration = 0;
+            } else if (sentenceIndex == 1) {
+                timeoutDuration = 5.4;
+            } else if (sentenceIndex == 2) {
+                timeoutDuration = 9.08;
+            } else if (sentenceIndex == 3) {
+                timeoutDuration = 14.96;
+            } else {
+                timeoutDuration = 21.68;
+            }
+            setTimeout(
+                sentenceIndex => {
+                    //alert("Timeout fired, #" + sentenceIndex + ", timeoutDuration: " + timeoutDuration + ", text = " + $("#audioPhraseId" + sentenceIndex).text());
+
+                    this.getPageDocBody()
+                        .find("#audioPhraseId" + sentenceIndex)
+                        .addClass("ui-audioCurrent");
+                    if (sentenceIndex <= 4) {
+                        this.getPageDocBody()
+                            .find("#audioPhraseId" + (sentenceIndex - 1))
+                            .removeClass("ui-audioCurrent");
+                    }
+                    //$("#audioPhraseId" + sentenceIndex).addClass("ui-audioCurrent");
+                    //$("#audioPhraseId" + sentenceIndex).get(0).innerText += "CURRENT!";
+                    // if (sentenceIndex >= 1) {
+                    //     $("#audioPhraseId" + (sentenceIndex - 1)).removeClass("ui-audioCurrent");
+                    // }
+                },
+                timeoutDuration * 1000,
+                sentenceIndex
+            );
+            ++sentenceIndex;
+        }
+
+        newHtml += "</span></p>";
+        firstElement.innerHTML = newHtml;
+
         this.setCurrentAudioElement(original, first, true);
+
+        first.removeClass("ui-audioCurrent");
+        //$("#audioPhraseId0").addClass("ui-audioCurrent");
+
         this.playingAll = true;
         this.setStatus("listen", Status.Active);
         this.playCurrentInternal();
