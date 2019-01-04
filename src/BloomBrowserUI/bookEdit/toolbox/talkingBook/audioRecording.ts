@@ -1575,13 +1575,66 @@ export default class AudioRecording {
     }
 
     private autoSegment(): void {
-        const statusElement: JQuery = $(".autoSegmentStatus");
-        statusElement.css("display", "block");
+        const fragmentIdTuples = this.extractFragmentsForAudioSegmentation();
 
-        BloomApi.get("audioSegmentation/autoSegmentAudio", result => {
-            toastr.info("Result returned: " + result.data);
-            statusElement.get(0).innerText = "Done";
-        });
+        if (fragmentIdTuples.length > 0) {
+            const statusElement: JQuery = $(".autoSegmentStatus");
+            statusElement.get(0).innerText = "Segmenting...";
+            statusElement.css("display", "block");
+
+            BloomApi.postJson(
+                "audioSegmentation/autoSegmentAudio",
+                JSON.stringify(fragmentIdTuples),
+                result => {
+                    toastr.info("Result returned: " + result.data);
+                    statusElement.get(0).innerText = "Done";
+                }
+            );
+        }
+    }
+
+    // Finds the current text box, gets its text, split into sentences, then return each sentence with a UUID.
+    private extractFragmentsForAudioSegmentation(): string[][] {
+        const currentText = this.getCurrentText();
+
+        const textFragments: TextFragment[] = theOneLibSynphony.stringToSentences(
+            currentText
+        );
+
+        // Note: We will just create all new IDs for this. Which I think is reasonable.
+        // If splitting the audio file, reusing audio recorded from by-sentence mode is probably less smooth.
+
+        const fragmentIdTuples: string[][] = [];
+        for (let i = 0; i < textFragments.length; ++i) {
+            const fragment = textFragments[i];
+            if (this.isRecordable(fragment)) {
+                const newId = this.createValidXhtmlUniqueId();
+                fragmentIdTuples.push([fragment.text, newId]);
+            }
+        }
+
+        return fragmentIdTuples;
+    }
+
+    private getCurrentText(): string {
+        const currentElement = this.getCurrentElement();
+        if (currentElement) {
+            return currentElement.innerText;
+        }
+        return "";
+    }
+
+    private getCurrentElement(): HTMLElement | null {
+        const currentJQuery = this.getCurrent();
+        if (currentJQuery) {
+            return currentJQuery.get(0);
+        }
+        return null;
+    }
+
+    private getCurrent(): JQuery {
+        const page = this.getPageDocBody();
+        return page.find(".ui-audioCurrent");
     }
 }
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Bloom.Api;
+using Newtonsoft.Json;
 
 namespace Bloom.web.controllers
 {
@@ -25,43 +26,113 @@ namespace Bloom.web.controllers
 
 		public void AutoSegment(ApiRequest request)
 		{
-			//request.ReplyWithText("hello world");
-			string inputAudioFilename = @"C:\Users\SuJ\Documents\Bloom\My Source Collection\audioSync whole\audio\c97062fa-b09f-4965-b24b-88487bcd5761.mp3";
-			string inputTextFragmentsFilename = @"C:\Users\SuJ\Documents\SIL\Bloom\Forced Alignment\inputs\splitTest\James ManyAudioSentenceTest\fragments.txt";
-			string outputFilename = @"C:\Users\SuJ\Documents\Bloom\My Source Collection\audioSync whole\audio\c97062fa-b09f-4965-b24b-88487bcd5761_timings.srt";
+			string inputAudioFilename = @"C:\Users\SuJ\Documents\Bloom\My Source Collection\audioSync whole Spare\audio\c97062fa-b09f-4965-b24b-88487bcd5761.mp3";
+			string directoryName = Path.GetDirectoryName(inputAudioFilename);
+			string filenameBase = Path.GetFileNameWithoutExtension(inputAudioFilename);
+			string textFragmentsFilename =  $"{directoryName}/{filenameBase}_fragments.txt";
+			string audioTimingsFilename = $"{directoryName}/{filenameBase}_timings.srt";
+
+			// Parse the JSON containing the text segmentation data.
+			IEnumerable<IList<string>> parsedTextSegmentationObj = JsonConvert.DeserializeObject<string[][]>(request.RequiredPostJson());
+			parsedTextSegmentationObj = parsedTextSegmentationObj.Where(subarray => !String.IsNullOrWhiteSpace(subarray[0]));	// Remove entries containing only whitespace
+			var fragmentList = parsedTextSegmentationObj.Select(subarray => subarray[0]);
+			var idList = parsedTextSegmentationObj.Select(subarray => subarray[1]).ToList();
+
+			File.WriteAllLines(textFragmentsFilename, fragmentList);
+
+			var timingStartEndRangeList = GetSplitStartEndTimings(inputAudioFilename, textFragmentsFilename, audioTimingsFilename);
+
+			Debug.Assert(idList.Count == timingStartEndRangeList.Count, $"Number of text fragments ({idList.Count}) does not match number of extracted timings ({timingStartEndRangeList.Count}). The parsed timing ranges might be completely incorrect. The last parsed timing is: ({timingStartEndRangeList.Last()?.Item1 ?? "null"}, {timingStartEndRangeList.Last()?.Item2 ?? "null"}).");
+
+			for (int i = 0; i < timingStartEndRangeList.Count; ++i)
+			{
+				var timingRange = timingStartEndRangeList[i];
+				var timingStartString = timingRange.Item1;
+				var timingEndString = timingRange.Item2;
+
+				string splitFilename = $"{directoryName}/{idList[i]}.mp3";
+
+				ExtractAudioSegment(inputAudioFilename, timingStartString, timingEndString, splitFilename);
+			}
+
+			// TODO: Maybe wait for them all to finish.
+			request.ReplyWithBoolean(true);	// Success
+		}
+
+		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename)
+		{
 			string lang = "en";
 
 			// Note: The version of FFMPEG in output/Debug or output/Release is probably not compatible with the version required by Aeneas.
 			// Thus, change the working path to something that hopefully doesn't contain our FFMPEG version.
-			string commandString = $"cd %HOMEDRIVE%\\%HOMEPATH% && python -m aeneas.tools.execute_task \"{inputAudioFilename}\" \"{inputTextFragmentsFilename}\" \"task_language={lang}|is_text_type=plain|os_task_file_format=srt\" \"{outputFilename}\"";
+			string commandString = $"cd %HOMEDRIVE%\\%HOMEPATH% && python -m aeneas.tools.execute_task \"{inputAudioFilename}\" \"{inputTextFragmentsFilename}\" \"task_language={lang}|is_text_type=plain|os_task_file_format=srt\" \"{outputTimingsFilename}\"";
 
-			var processStartInfo = new ProcessStartInfo();
-			processStartInfo.FileName = "CMD.EXE";
+			var processStartInfo = new ProcessStartInfo()
+			{
+				FileName = "CMD.EXE",
 
-			// DEBUG NOTE: you can use "/K" instead of "/C" to keep the window open (if needed for debugging)
-			processStartInfo.Arguments = $"/C {commandString}";
+				// DEBUG NOTE: you can use "/K" instead of "/C" to keep the window open (if needed for debugging)
+				Arguments = $"/C {commandString}"
+			};
 
 			var process = Process.Start(processStartInfo);
 
 			// TODO: Should I set a timeout?  In general Aeneas is reasonably fast but it doesn't really seem like I could guarantee that it would return within a certain time..
 			// Block the current thread of execution until aeneas has completed, so that we can read the correct results from the output file.
-			process.WaitForExit();			
+			process.WaitForExit();
 
 
-			// TODO: Catch some errors, maybe?
-			// Probably better just to let the error handler pass it, and have the Javascript code be as robust as possible, instead of passing on the errors to the user
-			string segmentationResults = "";
-			try
+			// This might throw exceptiosn, but IMO best to let the error handler pass it, and have the Javascript code be as robust as possible, instead of passing on error messages to user
+			var segmentationResults = File.ReadAllLines(outputTimingsFilename);
+			var timingStartEndRangeList = ParseTimingFileSRT(segmentationResults);
+			return timingStartEndRangeList;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="segmentationResults">The contents (line-by-line) of a .srt timing file</param>
+		private List<Tuple<string, string>> ParseTimingFileSRT(IList<string> segmentationResults)
+		{
+			var timings = new List<Tuple<string, string>>();
+
+			// For now, just a simple parser that assumes the input is very well-formed, no attempt to re-align the states or anything
+			// Each record comes in series of 4 lines. The first line has the fragment index (1-based), then the timing range, then the text, then a newline
+			// We really only need the timing range for now so we just go straight to it and skip over everything else
+			for (int lineNumber = 1; lineNumber <= segmentationResults.Count; lineNumber += 4)
 			{
-				segmentationResults = File.ReadAllText(outputFilename);
+				string line = segmentationResults[lineNumber];
+				string timingRange = line.Replace(',', '.');    // Convert from SRT's/Aeneas's HH:MM::SS,mmm format to FFMPEG's "HH:MM:SS.mmm" format. (aka European decimal points to American decimal points)
+				var fields = timingRange.Split(new string[] { "-->" }, StringSplitOptions.None);
+				string timingStart = fields[0].Trim();
+				string timingEnd = fields[1].Trim();
+
+				if (String.IsNullOrEmpty(timingStart))
+				{
+					if (!timings.Any())
+					{
+						timingStart = "00:00:00.000";
+					}
+					else
+					{
+						timingStart = timings.Last().Item2;
+					}
+				}
+
+				// If timing end is messed up, we'll continue to pass the record. In theory, it is valid for the timings to be defined solely by the start times (as long as you don't need the highlight to disappear for a time)
+				// so don't remove records where the end time is missing
+
+				timings.Add(Tuple.Create(timingStart, timingEnd));
 			}
-			// Catch certain exceptions related to reading the file, but not those that seem to be caused by our code.
-			catch (Exception e) when (e is PathTooLongException || e is DirectoryNotFoundException || e is IOException || e is UnauthorizedAccessException || e is FileNotFoundException)
-			{
-				// TODO: Re-think all this later
-				request.ReplyWithText($"BloomError: Exception thrown when reading file.\n{e.Message}");
-			}
-			request.ReplyWithText(segmentationResults);
+
+			return timings;
+		}
+
+		public void ExtractAudioSegment(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
+		{
+			string commandString = $"ffmpeg -i \"{inputAudioFilename}\" -acodec copy -ss {timingStartString} -to {timingEndString} \"{outputSplitFilename}\"";
+
+			Process.Start("CMD", $"/C {commandString}");
 		}
 	}
 }
