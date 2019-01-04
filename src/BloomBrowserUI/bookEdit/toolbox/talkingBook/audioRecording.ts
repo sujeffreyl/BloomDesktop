@@ -56,6 +56,8 @@ const kBloomEditableTextBoxSelector = "div.bloom-editable";
 const kRecordingModeControl: string = "audio-recordingModeControl";
 const kRecordingModeClickHandler: string =
     "audio-recordingModeControl-clickHandler";
+const kAutoSegmentButtonId = "audio-autoSegment";
+const kAutoSegmentButtonIdSelector = "#" + kAutoSegmentButtonId;
 
 // TODO: We would actually like this to have (conceptually) different state for each text box, not a single one per page.
 // This would allow us to set a separate audio-recording mode for each state.
@@ -113,6 +115,9 @@ export default class AudioRecording {
         $("#audio-clear")
             .off()
             .click(e => this.clearRecording());
+        $(kAutoSegmentButtonIdSelector)
+            .off()
+            .click(e => this.autoSegment());
 
         $("#player").off();
         $("#player").attr("preload", "auto"); // speeds playback, ensures we get the durationchange event
@@ -1567,6 +1572,16 @@ export default class AudioRecording {
         } else {
             $("#audio-" + which + "-label").removeClass("expected");
         }
+    }
+
+    private autoSegment(): void {
+        const statusElement: JQuery = $(".autoSegmentStatus");
+        statusElement.css("display", "block");
+
+        BloomApi.get("audioSegmentation/autoSegmentAudio", result => {
+            toastr.info("Result returned: " + result.data);
+            statusElement.get(0).innerText = "Done";
+        });
     }
 }
 
