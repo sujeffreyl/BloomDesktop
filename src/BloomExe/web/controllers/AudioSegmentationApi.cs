@@ -42,21 +42,10 @@ namespace Bloom.web.controllers
 
 			var timingStartEndRangeList = GetSplitStartEndTimings(inputAudioFilename, textFragmentsFilename, audioTimingsFilename);
 
-			Debug.Assert(idList.Count == timingStartEndRangeList.Count, $"Number of text fragments ({idList.Count}) does not match number of extracted timings ({timingStartEndRangeList.Count}). The parsed timing ranges might be completely incorrect. The last parsed timing is: ({timingStartEndRangeList.Last()?.Item1 ?? "null"}, {timingStartEndRangeList.Last()?.Item2 ?? "null"}).");
+			ExtractAudioSegments(idList, timingStartEndRangeList, directoryName, inputAudioFilename);
 
-			for (int i = 0; i < timingStartEndRangeList.Count; ++i)
-			{
-				var timingRange = timingStartEndRangeList[i];
-				var timingStartString = timingRange.Item1;
-				var timingEndString = timingRange.Item2;
-
-				string splitFilename = $"{directoryName}/{idList[i]}.mp3";
-
-				ExtractAudioSegment(inputAudioFilename, timingStartString, timingEndString, splitFilename);
-			}
-
-			// TODO: Maybe wait for them all to finish.
-			request.ReplyWithBoolean(true);	// Success
+			// TODO: Should return some false status codes sometimes
+			request.ReplyWithBoolean(true); // Success
 		}
 
 		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename)
@@ -128,11 +117,63 @@ namespace Bloom.web.controllers
 			return timings;
 		}
 
-		public void ExtractAudioSegment(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
+		private void ExtractAudioSegments(IList<string> idList, IList<Tuple<string, string>> timingStartEndRangeList, string directoryName, string inputAudioFilename)
+		{
+			// Wait for them all so that the UI knows all the files are there before it starts mucking with the HTML structure.
+			// The blocking wait kinda sucks but shouldn't be a big deal because all the work we need to wait on is already kicked off and presumably we're not desparate for threads anyway.
+			// We definitely need to wait because the Endpoint Handler must not return until the Reply is sent, and we shouldn't Reply until the tasks are done...
+			// Ideally we would await the Endpoint Handler but that will trigger a big mess in changing return types of EndpointHandler, so let's just sync wait on a single thread instead.
+			var task = ExtractAudioSegmentsAsync(idList, timingStartEndRangeList, directoryName, inputAudioFilename);
+			task.Wait();
+		}
+
+		private async Task ExtractAudioSegmentsAsync(IList<string> idList, IList<Tuple<string, string>> timingStartEndRangeList, string directoryName, string inputAudioFilename)
+		{
+			Debug.Assert(idList.Count == timingStartEndRangeList.Count, $"Number of text fragments ({idList.Count}) does not match number of extracted timings ({timingStartEndRangeList.Count}). The parsed timing ranges might be completely incorrect. The last parsed timing is: ({timingStartEndRangeList.Last()?.Item1 ?? "null"}, {timingStartEndRangeList.Last()?.Item2 ?? "null"}).");
+
+			var tasksToAwait = new List<Task>();
+			for (int i = 0; i < timingStartEndRangeList.Count; ++i)
+			{
+				var timingRange = timingStartEndRangeList[i];
+				var timingStartString = timingRange.Item1;
+				var timingEndString = timingRange.Item2;
+
+				string splitFilename = $"{directoryName}/{idList[i]}.mp3";
+
+				tasksToAwait.Add(ExtractAudioSegmentAsync(inputAudioFilename, timingStartString, timingEndString, splitFilename));
+			}
+
+			// Allow each ffmpeg to run asynchronously and in parallel
+			await Task.WhenAll(tasksToAwait);
+		}
+
+		public Task<int> ExtractAudioSegmentAsync(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
 		{
 			string commandString = $"ffmpeg -i \"{inputAudioFilename}\" -acodec copy -ss {timingStartString} -to {timingEndString} \"{outputSplitFilename}\"";
 
-			Process.Start("CMD", $"/C {commandString}");
+			return RunProcessAsync("CMD", $"/C {commandString}");
+		}
+
+		// Allows you to asynchronously wait the completion of the process
+		public static Task<int> RunProcessAsync(string fileName, string arguments)
+		{
+			var tcs = new TaskCompletionSource<int>();
+
+			var process = new Process
+			{
+				StartInfo = { FileName = fileName, Arguments = arguments },
+				EnableRaisingEvents = true
+			};
+
+			process.Exited += (sender, args) =>
+			{
+				tcs.SetResult(process.ExitCode);
+				process.Dispose();
+			};
+
+			process.Start();
+
+			return tcs.Task;
 		}
 	}
 }

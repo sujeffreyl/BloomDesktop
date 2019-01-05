@@ -673,12 +673,12 @@ export default class AudioRecording {
 
     // For now, we know this is a checkbox, so we just need to toggle the value.
     // In the future, there may be more than two values and we will need to pass in a parameter to let us know which mode to switch to
-    private updateRecordingMode() {
+    private updateRecordingMode(forceOverwrite: boolean = false) {
         // Check if there are any audio recordings present.
         //   If so, these would become invalidated (and deleted down the road when the book's unnecessary files gets cleaned up)
         //   Warn the user if this deletion could happen
         //   We detect this state by relying on the same logic that turns on the Listen button when an audio recording is present
-        if (this.isEnabledOrExpected("listen")) {
+        if (!forceOverwrite && this.isEnabledOrExpected("listen")) {
             this.notifyRecordingModeControlDisabled();
             return;
         }
@@ -1588,8 +1588,14 @@ export default class AudioRecording {
                 result => {
                     toastr.info("Result returned: " + result.data);
                     statusElement.get(0).innerText = "Done";
+
+                    // TODO: Create it using spans. Except you need to roughly match the sentences with the audio.
+                    // Maybe you can just assume that the index matches
+                    this.updateRecordingMode(true);
                 }
             );
+
+            // TODO: Probably disable some controls while this is going on. Especially the Clear() one. Record by sentences echeckbox wouldn't hurt either.
         }
     }
 
