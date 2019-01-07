@@ -119,19 +119,10 @@ namespace Bloom.web.controllers
 
 		private void ExtractAudioSegments(IList<string> idList, IList<Tuple<string, string>> timingStartEndRangeList, string directoryName, string inputAudioFilename)
 		{
-			// Wait for them all so that the UI knows all the files are there before it starts mucking with the HTML structure.
-			// The blocking wait kinda sucks but shouldn't be a big deal because all the work we need to wait on is already kicked off and presumably we're not desparate for threads anyway.
-			// We definitely need to wait because the Endpoint Handler must not return until the Reply is sent, and we shouldn't Reply until the tasks are done...
-			// Ideally we would await the Endpoint Handler but that will trigger a big mess in changing return types of EndpointHandler, so let's just sync wait on a single thread instead.
-			var task = ExtractAudioSegmentsAsync(idList, timingStartEndRangeList, directoryName, inputAudioFilename);
-			task.Wait();
-		}
-
-		private async Task ExtractAudioSegmentsAsync(IList<string> idList, IList<Tuple<string, string>> timingStartEndRangeList, string directoryName, string inputAudioFilename)
-		{
 			Debug.Assert(idList.Count == timingStartEndRangeList.Count, $"Number of text fragments ({idList.Count}) does not match number of extracted timings ({timingStartEndRangeList.Count}). The parsed timing ranges might be completely incorrect. The last parsed timing is: ({timingStartEndRangeList.Last()?.Item1 ?? "null"}, {timingStartEndRangeList.Last()?.Item2 ?? "null"}).");
 
-			var tasksToAwait = new List<Task>();
+			// Allow each ffmpeg to run in parallel
+			var tasksToWait = new Task[timingStartEndRangeList.Count];
 			for (int i = 0; i < timingStartEndRangeList.Count; ++i)
 			{
 				var timingRange = timingStartEndRangeList[i];
@@ -140,11 +131,11 @@ namespace Bloom.web.controllers
 
 				string splitFilename = $"{directoryName}/{idList[i]}.mp3";
 
-				tasksToAwait.Add(ExtractAudioSegmentAsync(inputAudioFilename, timingStartString, timingEndString, splitFilename));
+				tasksToWait[i] = ExtractAudioSegmentAsync(inputAudioFilename, timingStartString, timingEndString, splitFilename);
 			}
 
-			// Allow each ffmpeg to run asynchronously and in parallel
-			await Task.WhenAll(tasksToAwait);
+			// Wait for them all so that the UI knows all the files are there before it starts mucking with the HTML structure.
+			Task.WaitAll(tasksToWait.ToArray());
 		}
 
 		public Task<int> ExtractAudioSegmentAsync(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
@@ -154,7 +145,7 @@ namespace Bloom.web.controllers
 			return RunProcessAsync("CMD", $"/C {commandString}");
 		}
 
-		// Allows you to asynchronously wait the completion of the process
+		// Allows you to potentially asynchronously wait the completion of the process
 		public static Task<int> RunProcessAsync(string fileName, string arguments)
 		{
 			var tcs = new TaskCompletionSource<int>();
