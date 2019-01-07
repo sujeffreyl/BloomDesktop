@@ -75,6 +75,9 @@ export default class AudioRecording {
     private recordingModeInput: HTMLInputElement; // Currently a checkbox, could change to a radio button in the future
     private isShowing: boolean;
 
+    private stringToSentencesCache = {};
+    private sentenceToId = {}; // Wonder if we should just pass this around as a parameter between functions instead of maintaining state in the object?
+
     private listenerFunction: (MessageEvent) => void;
 
     constructor() {
@@ -93,7 +96,7 @@ export default class AudioRecording {
     // Only called the first time the Toolbox is opened for this book during this Editing session.
     public initializeTalkingBookTool() {
         // I've sometimes observed events like click being handled repeatedly for a single click.
-        // Adding thse .off calls seems to help...it's as if something causes this show event to happen
+        // Adding these .off calls seems to help...it's as if something causes this show event to happen
         // more than once so the event handlers were being added repeatedly, but I haven't caught
         // that actually happening. However, the off() calls seem to prevent it.
         $("#audio-next")
@@ -286,11 +289,9 @@ export default class AudioRecording {
             ":not(.bloom-noAudio) > " + kBloomEditableTextBoxSelector
         );
         return divs.filter(":visible").filter((idx, elt) => {
-            return theOneLibSynphony
-                .stringToSentences(elt.innerHTML)
-                .some(frag => {
-                    return $this.isRecordable(frag);
-                });
+            return this.stringToSentences(elt.innerHTML).some(frag => {
+                return $this.isRecordable(frag);
+            });
         });
     }
 
@@ -1290,11 +1291,12 @@ export default class AudioRecording {
         // will do weird things with it (wrap it in a sentence span, for example) so the easiest thing is to remove
         // it at the start and reinstate it at the end. Fortunately its position is predictable. But I wish this
         // otherwise fairly generic code didn't have to know about it.
-        var formatButton = elt.find("#formatButton");
+        const formatButton = elt.find("#formatButton");
         formatButton.remove(); // nothing happens if not found
 
-        var markedSentences = elt.find(kAudioSentenceClassSelector);
-        var reuse: any[] = []; // an array of id/md5 pairs for any existing sentences marked up for audio in the element.
+        const markedSentences = elt.find(kAudioSentenceClassSelector);
+        const reuse: any[] = []; // an array of id/md5 pairs for any existing sentences marked up for audio in the element.
+        // If caller has manually specified a custom ID list, then let's say (for now) that we won't allow IDs to be re-used
         markedSentences.each(function(index) {
             reuse.push({
                 id: $(this).attr("id"),
@@ -1303,16 +1305,14 @@ export default class AudioRecording {
             $(this).replaceWith($(this).html()); // strip out the audio-sentence wrapper so we can re-partition.
         });
 
-        const fragments: TextFragment[] = theOneLibSynphony.stringToSentences(
-            elt.html()
-        );
+        const fragments: TextFragment[] = this.stringToSentences(elt.html());
 
         // If any new sentence has an md5 that matches a saved one, attach that id/md5 pair to that fragment.
-        for (var i = 0; i < fragments.length; i++) {
-            var fragment = fragments[i];
+        for (let i = 0; i < fragments.length; i++) {
+            const fragment = fragments[i];
             if (this.isRecordable(fragment)) {
-                var currentMd5 = this.md5(fragment.text);
-                for (var j = 0; j < reuse.length; j++) {
+                const currentMd5 = this.md5(fragment.text);
+                for (let j = 0; j < reuse.length; j++) {
                     if (currentMd5 === reuse[j].md5) {
                         // It's convenient here (very locally) to add a field to fragment which is not part
                         // of its spec in theOneLibSynphony.
@@ -1325,17 +1325,17 @@ export default class AudioRecording {
         }
 
         // Assemble the new HTML, reusing old IDs where possible and generating new ones where needed.
-        var newHtml = "";
-        for (var i = 0; i < fragments.length; i++) {
-            var fragment = fragments[i];
+        let newHtml = "";
+        for (let i = 0; i < fragments.length; i++) {
+            const fragment = fragments[i];
 
             if (!this.isRecordable(fragment)) {
                 // this is inter-sentence space (or white space before first sentence).
                 newHtml += fragment.text;
             } else {
-                var newId: string | null = null;
-                var newMd5: string = "";
-                var reuseThis = (<any>fragment).matchingAudioSpan;
+                let newId: string | null = null;
+                let newMd5: string = "";
+                let reuseThis = (<any>fragment).matchingAudioSpan;
                 if (!reuseThis && reuse.length > 0) {
                     reuseThis = reuse[0]; // use first if none matches (preserves order at least)
                     reuse.splice(0, 1);
@@ -1345,7 +1345,9 @@ export default class AudioRecording {
                     newId = reuseThis.id;
                     newMd5 = ' recordingmd5="' + reuseThis.md5 + '"';
                 }
-                if (!newId) {
+                if (!newId && fragment.text in this.sentenceToId) {
+                    newId = this.sentenceToId[fragment.text];
+                } else {
                     newId = this.createValidXhtmlUniqueId();
                 }
                 newHtml +=
@@ -1589,13 +1591,18 @@ export default class AudioRecording {
                     toastr.info("Result returned: " + result.data);
                     statusElement.get(0).innerText = "Done";
 
-                    // TODO: Create it using spans. Except you need to roughly match the sentences with the audio.
-                    // Maybe you can just assume that the index matches
-                    this.updateRecordingMode(true);
+                    if (result.data) {
+                        // Now that we know the Auto Segmentation succeeded, finally convert into by-sentence mode.
+                        this.updateRecordingMode(true);
+                    } else {
+                        // TODO: Give an error message or something
+                    }
                 }
             );
 
             // TODO: Probably disable some controls while this is going on. Especially the Clear() one. Record by sentences echeckbox wouldn't hurt either.
+
+            // TODO: Unittest what you can
         }
     }
 
@@ -1603,7 +1610,7 @@ export default class AudioRecording {
     private extractFragmentsForAudioSegmentation(): string[][] {
         const currentText = this.getCurrentText();
 
-        const textFragments: TextFragment[] = theOneLibSynphony.stringToSentences(
+        const textFragments: TextFragment[] = this.stringToSentences(
             currentText
         );
 
@@ -1616,6 +1623,7 @@ export default class AudioRecording {
             if (this.isRecordable(fragment)) {
                 const newId = this.createValidXhtmlUniqueId();
                 fragmentIdTuples.push([fragment.text, newId]);
+                this.sentenceToId[fragment.text] = newId; // This is saved so MakeSentenceAudioElementsLeaf can recover it
             }
         }
 
@@ -1630,17 +1638,25 @@ export default class AudioRecording {
         return "";
     }
 
-    private getCurrentElement(): HTMLElement | null {
+    private getCurrentElement(): HTMLElement {
         const currentJQuery = this.getCurrent();
-        if (currentJQuery) {
-            return currentJQuery.get(0);
-        }
-        return null;
+        return currentJQuery.get(0);
     }
 
     private getCurrent(): JQuery {
         const page = this.getPageDocBody();
         return page.find(".ui-audioCurrent");
+    }
+
+    // I add a cached version so that it is more verifiable that two calls with the same inputs will definitely return the same outputs.
+    public stringToSentences(text: string): TextFragment[] {
+        if (text in this.stringToSentencesCache) {
+            return this.stringToSentencesCache[text];
+        } else {
+            const retVal = theOneLibSynphony.stringToSentences(text);
+            this.stringToSentencesCache[text] = retVal;
+            return retVal;
+        }
     }
 }
 
