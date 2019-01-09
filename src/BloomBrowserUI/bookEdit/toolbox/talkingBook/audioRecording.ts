@@ -1633,15 +1633,20 @@ export default class AudioRecording {
                 "audioSegmentation/autoSegmentAudio",
                 JSON.stringify(inputParameters),
                 result => {
-                    toastr.info("Result returned: " + result.data);
-                    statusElement.get(0).innerText = "Done";
+                    const isSuccess = result && result.data.startsWith("TRUE");
+                    let statusMessage: string = "Done";
 
-                    if (result.data) {
+                    if (isSuccess) {
                         // Now that we know the Auto Segmentation succeeded, finally convert into by-sentence mode.
                         this.updateRecordingMode(true);
                     } else {
-                        // TODO: Give an error message or something
+                        // TODO: possibly change the color?
+                        statusMessage = "Error";
+                        toastr.error("AutoSegment did not succeed.");
+                        toastr.info("Error: " + result.data);
                     }
+
+                    statusElement.get(0).innerText = statusMessage;
                 }
             );
 
@@ -1686,7 +1691,7 @@ export default class AudioRecording {
             langCode = currentDiv.attr("lang");
         }
 
-        // Remove the suffix for things like es-BRAI
+        // Remove the suffix for strings like "es-BRAI"  (Spanish - Brazil)
         const countryCodeSeparatorIndex = langCode.indexOf("-");
         if (countryCodeSeparatorIndex >= 0) {
             langCode = langCode.substr(0, countryCodeSeparatorIndex);

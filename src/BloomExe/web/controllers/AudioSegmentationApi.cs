@@ -15,6 +15,7 @@ namespace Bloom.web.controllers
 	public class AudioSegmentationApi
 	{
 		public const string kApiUrlPart = "audioSegmentation/";
+		private const string kWorkingDirectory = "%HOMEDRIVE%\\%HOMEPATH%";
 
 		BookSelection _bookSelection;
 		public AudioSegmentationApi(BookSelection bookSelection)
@@ -35,25 +36,25 @@ namespace Bloom.web.controllers
 			// 2) Aeneas (to run splits)
 			// 3) Any Aeneas dependencies, but hopefully the install of Aeneas took care of that
 			//    3A) Espeak is one.
+			//    3B) FFMMPEG is required by Aeneas, and we also use it to do splitting here as well.  (Also, Bloom uses a stripped-down version in other places)
 			// 4) FFMPEG, and not necessarily a stripped-down version
 			// 5) Any FFMPEG dependencies?
-			string workingDirectory = "%HOMEDRIVE%\\%HOMEPATH%";
-			if (DoesCommandCauseError("WHERE python", workingDirectory))
+			if (DoesCommandCauseError("WHERE python", kWorkingDirectory))
 			{
 				request.ReplyWithText("FALSE Python not found.");
 				return;
 			}
-			else if (DoesCommandCauseError("WHERE espeak", workingDirectory))
+			else if (DoesCommandCauseError("WHERE espeak", kWorkingDirectory))
 			{
 				request.ReplyWithText("FALSE espeak not found.");
 				return;
 			}
-			else if (DoesCommandCauseError("WHERE ffmpeg", workingDirectory))
+			else if (DoesCommandCauseError("WHERE ffmpeg", kWorkingDirectory))
 			{
 				request.ReplyWithText("FALSE FFMPEG not found.");
 				return;
 			}
-			else if (DoesCommandCauseError("python -m aeneas.tools.execute_task", workingDirectory, 2))	// Expected to list usage. Error Code 0 = Success, 1 = Error, 2 = Help shown.
+			else if (DoesCommandCauseError("python -m aeneas.tools.execute_task", kWorkingDirectory, 2))	// Expected to list usage. Error Code 0 = Success, 1 = Error, 2 = Help shown.
 			{
 				request.ReplyWithText("FALSE Aeneas not found in Python environment.");
 				return;
@@ -66,8 +67,14 @@ namespace Bloom.web.controllers
 			}
 		}
 
-		// Returns true if the command returned with an error
 		protected bool DoesCommandCauseError(string commandString, string workingDirectory = "", params int[] errorCodesToIgnore)
+		{
+			string stdOut;
+			string stdErr;
+			return DoesCommandCauseError(commandString, workingDirectory, out stdOut, out stdErr, errorCodesToIgnore);
+		}
+		// Returns true if the command returned with an error
+		protected bool DoesCommandCauseError(string commandString, string workingDirectory, out string standardOutput, out string standardError, params int[] errorCodesToIgnore)
 		{
 			if (!String.IsNullOrEmpty(workingDirectory))
 			{
@@ -83,11 +90,16 @@ namespace Bloom.web.controllers
 					Arguments = arguments,
 					UseShellExecute = false,
 					CreateNoWindow = true,
+					RedirectStandardOutput = true,
+					RedirectStandardError = true,
 				},
 			};
 
 			process.Start();
 			process.WaitForExit();
+
+			standardOutput = process.StandardOutput.ReadToEnd();
+			standardError = process.StandardError.ReadToEnd();
 
 			Debug.Assert(process.ExitCode != -1073741510); // aka 0xc000013a which means that the command prompt exited, and we can't determine what the exit code of the last command was :(
 
@@ -112,9 +124,18 @@ namespace Bloom.web.controllers
 			// Parse the JSON containing the text segmentation data.
 			var dynamicParsedObj = DynamicJson.Parse(request.RequiredPostJson());
 			string filenameBase = dynamicParsedObj.audioFilenameBase;
-			string[][] fragmentIdTuples = dynamicParsedObj.fragmentIdTuples;
+			IEnumerable<IList<string>> fragmentIdTuples = (string[][])(dynamicParsedObj.fragmentIdTuples);
 			string langCode = dynamicParsedObj.lang;
 
+			// When using TTS overrides, there's no Aeneas error message that tells us if the language is unsupported.
+			// Therefore, we explicitly test if the language is supported by the dependency (eSpeak) before getting started.
+			string stdOut, stdErr;
+			if (DoesCommandCauseError($"espeak -v {langCode} -q \"hello world\"", kWorkingDirectory, out stdOut, out stdErr))
+			{
+				// FYI: The error message is expected to be in stdError with an empty stdOut, but I included both just in case.
+				request.ReplyWithText($"eSpeak error: {stdOut}\n{stdErr}");
+				return;
+			}
 			string directoryName = _bookSelection.CurrentSelection.FolderPath + "\\audio";
 			string inputAudioFilename = $"{directoryName}\\{filenameBase}.mp3";
 			// TODO: Also check if .wav if needed. Or maybe first.
@@ -122,21 +143,24 @@ namespace Bloom.web.controllers
 			string textFragmentsFilename =  $"{directoryName}/{filenameBase}_fragments.txt";
 			string audioTimingsFilename = $"{directoryName}/{filenameBase}_timings.srt";
 
-			IEnumerable<IList<string>> parsedTextSegmentationObj = fragmentIdTuples;
-			// TODO: CLEANUP
-			//IEnumerable<IList<string>> parsedTextSegmentationObj = JsonConvert.DeserializeObject<string[][]>(request.RequiredPostJson());
-			parsedTextSegmentationObj = parsedTextSegmentationObj.Where(subarray => !String.IsNullOrWhiteSpace(subarray[0]));	// Remove entries containing only whitespace
-			var fragmentList = parsedTextSegmentationObj.Select(subarray => subarray[0]);
-			var idList = parsedTextSegmentationObj.Select(subarray => subarray[1]).ToList();
+			fragmentIdTuples = fragmentIdTuples.Where(subarray => !String.IsNullOrWhiteSpace(subarray[0]));	// Remove entries containing only whitespace
+			var fragmentList = fragmentIdTuples.Select(subarray => subarray[0]);
+			var idList = fragmentIdTuples.Select(subarray => subarray[1]).ToList();
 
 			File.WriteAllLines(textFragmentsFilename, fragmentList);
 
-			var timingStartEndRangeList = GetSplitStartEndTimings(inputAudioFilename, textFragmentsFilename, audioTimingsFilename, langCode);
+			try
+			{
+				var timingStartEndRangeList = GetSplitStartEndTimings(inputAudioFilename, textFragmentsFilename, audioTimingsFilename, langCode);
 
-			ExtractAudioSegments(idList, timingStartEndRangeList, directoryName, inputAudioFilename);
+				ExtractAudioSegments(idList, timingStartEndRangeList, directoryName, inputAudioFilename);
+			}
+			catch (Exception e)
+			{
+				request.ReplyWithText("AutoSegment failed: " + e.Message + "\n" + e.StackTrace);
+			}
 
-			// TODO: Should return some false status codes sometimes
-			request.ReplyWithBoolean(true); // Success
+			request.ReplyWithText("TRUE"); // Success
 		}
 
 		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename, string ttsEngineLang = "en")
@@ -152,7 +176,10 @@ namespace Bloom.web.controllers
 				FileName = "CMD.EXE",
 
 				// DEBUG NOTE: you can use "/K" instead of "/C" to keep the window open (if needed for debugging)
-				Arguments = $"/C {commandString}"
+				Arguments = $"/C {commandString}",
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true
 			};
 
 			var process = Process.Start(processStartInfo);
@@ -161,8 +188,12 @@ namespace Bloom.web.controllers
 			// Block the current thread of execution until aeneas has completed, so that we can read the correct results from the output file.
 			process.WaitForExit();
 
+			var stdOut = process.StandardOutput.ReadToEnd();
+			var stdErr = process.StandardError.ReadToEnd();
+			// Note: we could also request Aeneas write a log (or verbose log... or very verbose log) if desired
 
-			// This might throw exceptiosn, but IMO best to let the error handler pass it, and have the Javascript code be as robust as possible, instead of passing on error messages to user
+
+			// This might throw exceptions, but IMO best to let the error handler pass it, and have the Javascript code be as robust as possible, instead of passing on error messages to user
 			var segmentationResults = File.ReadAllLines(outputTimingsFilename);
 			var timingStartEndRangeList = ParseTimingFileSRT(segmentationResults);
 			return timingStartEndRangeList;
