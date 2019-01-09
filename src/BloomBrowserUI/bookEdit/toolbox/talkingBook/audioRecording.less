@@ -252,8 +252,7 @@ div.ui-audioCurrent:not(.disableHighlight) p {
     #audio-autoSegment {
         background-color: transparent;
 
-        width: 97px;
-
+        font-weight: bold;
         border-width: 1px;
         margin-top: 12px;
         margin-right: 6px;
@@ -261,10 +260,9 @@ div.ui-audioCurrent:not(.disableHighlight) p {
         // TODO: The height of this button does not grow during the animation. Maybe see if you can make it happen later. I think it's easier said than done, so leave this till to the end.
     }
     #audio-autoSegmentSettings {
-        background-image: url("../../img/cog.svg"); // TODO: Need to make a cogWhite
+        background-color: @toolboxBackgroundColor;
+        background-image: url("../../img/cogWhite.svg"); // TODO: Need to make a cogWhite
         background-size: 15px;
-
-        fill: white;
 
         border: 0px;
         padding: 0px;
@@ -272,12 +270,15 @@ div.ui-audioCurrent:not(.disableHighlight) p {
         width: 15px;
         height: 15px;
         vertical-align: top;
-        margin-top: 16px;
+        margin-top: 14px;
     }
 
     .autoSegmentStatus {
         display: none;
         color: @bloom-yellow;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 1em;
     }
 }
 #toast-container {

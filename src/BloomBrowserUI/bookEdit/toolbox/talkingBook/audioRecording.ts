@@ -1621,14 +1621,30 @@ export default class AudioRecording {
     }
 
     private autoSegment(): void {
+        // First, check if there's even an audio recorded yet.
+        if ($("#audio-play").hasClass("disabled")) {
+            // TODO: Do toast strings, status message strings need to be localized?
+            toastr.warning(
+                "Please record audio first before running Auto Segment"
+            );
+            return;
+        }
         const currentDivId = this.getCurrentElement().id;
 
         const fragmentIdTuples = this.extractFragmentsForAudioSegmentation();
 
         if (fragmentIdTuples.length > 0) {
             const statusElement: JQuery = $(".autoSegmentStatus");
-            statusElement.get(0).innerText = "Segmenting...";
-            statusElement.css("display", "block");
+            theOneLocalizationManager
+                .asyncGetText(
+                    "EditTab.Toolbox.TalkingBookTool.AutoSegmentStatusInProgress",
+                    "Segmenting...",
+                    ""
+                )
+                .done(localizedNotification => {
+                    statusElement.get(0).innerText = localizedNotification;
+                    statusElement.css("display", "block");
+                });
 
             const inputParameters = {
                 audioFilenameBase: currentDivId,
@@ -1641,24 +1657,47 @@ export default class AudioRecording {
                 JSON.stringify(inputParameters),
                 result => {
                     const isSuccess = result && result.data.startsWith("TRUE");
-                    let statusMessage: string = "Done";
 
                     if (isSuccess) {
+                        // FYI: if it's successful, the status message will get immediately hidden.
+                        theOneLocalizationManager
+                            .asyncGetText(
+                                "EditTab.Toolbox.TalkingBookTool.AutoSegmentStatusComplete",
+                                "Segmenting... Done",
+                                ""
+                            )
+                            .done(localizedNotification => {
+                                statusElement.get(
+                                    0
+                                ).innerText = localizedNotification;
+                            });
+
                         // Now that we know the Auto Segmentation succeeded, finally convert into by-sentence mode.
                         this.updateRecordingMode(true);
                     } else {
                         // TODO: possibly change the color?
-                        statusMessage = "Error";
-                        toastr.error("AutoSegment did not succeed.");
-                        toastr.info("Error: " + result.data);
-                    }
+                        theOneLocalizationManager
+                            .asyncGetText(
+                                "EditTab.Toolbox.TalkingBookTool.AutoSegmentStatusError",
+                                "Segmenting... Error",
+                                ""
+                            )
+                            .done(localizedNotification => {
+                                statusElement.get(
+                                    0
+                                ).innerText = localizedNotification;
+                            });
 
-                    statusElement.get(0).innerText = statusMessage;
+                        toastr.error(
+                            "AutoSegment did not succeed: " + result.data
+                        );
+                    }
                 }
             );
 
             // TODO: Probably disable some controls while this is going on. Especially the Clear() one. Record by sentences echeckbox wouldn't hurt either.
-            // TODO: If there are multiple text boxes per page, it resets focus to the wrong thing.
+            // TODO: If there are multiple text boxes per page, it always resets focus to the first  thing.
+            //       Doesn't it do that even if you use the checkbox instead?
             // TODO: If there are multiple text boxes on a page, maybe it shouldnt segment all of them.
             //       But the setting is for all of them on the page.  Ugh. Awkward.
 

@@ -39,24 +39,10 @@ namespace Bloom.web.controllers
 			//    3B) FFMMPEG is required by Aeneas, and we also use it to do splitting here as well.  (Also, Bloom uses a stripped-down version in other places)
 			// 4) FFMPEG, and not necessarily a stripped-down version
 			// 5) Any FFMPEG dependencies?
-			if (DoesCommandCauseError("WHERE python", kWorkingDirectory))
+			string message;
+			if (!AreAutoSegmentDependenciesMet(out message))
 			{
-				request.ReplyWithText("FALSE Python not found.");
-				return;
-			}
-			else if (DoesCommandCauseError("WHERE espeak", kWorkingDirectory))
-			{
-				request.ReplyWithText("FALSE espeak not found.");
-				return;
-			}
-			else if (DoesCommandCauseError("WHERE ffmpeg", kWorkingDirectory))
-			{
-				request.ReplyWithText("FALSE FFMPEG not found.");
-				return;
-			}
-			else if (DoesCommandCauseError("python -m aeneas.tools.execute_task", kWorkingDirectory, 2))	// Expected to list usage. Error Code 0 = Success, 1 = Error, 2 = Help shown.
-			{
-				request.ReplyWithText("FALSE Aeneas not found in Python environment.");
+				request.ReplyWithText($"FALSE {message}");
 				return;
 			}
 			else
@@ -65,6 +51,33 @@ namespace Bloom.web.controllers
 				request.ReplyWithText("TRUE");
 				return;
 			}
+		}
+
+		public bool AreAutoSegmentDependenciesMet(out string message)
+		{
+			if (DoesCommandCauseError("WHERE python", kWorkingDirectory))
+			{
+				message = "Python not found.";
+				return false;
+			}
+			else if (DoesCommandCauseError("WHERE espeak", kWorkingDirectory))
+			{
+				message = "FALSE espeak not found.";
+				return false;
+			}
+			else if (DoesCommandCauseError("WHERE ffmpeg", kWorkingDirectory))
+			{
+				message = "FFMPEG not found.";
+				return false;
+			}
+			else if (DoesCommandCauseError("python -m aeneas.tools.execute_task", kWorkingDirectory, 2))    // Expected to list usage. Error Code 0 = Success, 1 = Error, 2 = Help shown.
+			{
+				message = "Aeneas not found in Python environment.";
+				return false;
+			}
+
+			message = "";
+			return true;
 		}
 
 		protected bool DoesCommandCauseError(string commandString, string workingDirectory = "", params int[] errorCodesToIgnore)
@@ -125,8 +138,26 @@ namespace Bloom.web.controllers
 			// Parse the JSON containing the text segmentation data.
 			var dynamicParsedObj = DynamicJson.Parse(request.RequiredPostJson());
 			string filenameBase = dynamicParsedObj.audioFilenameBase;
+			string directoryName = _bookSelection.CurrentSelection.FolderPath + "\\audio";
+			 
+			string inputAudioFilename = GetFileNameToSegment(directoryName, filenameBase);
+			if (String.IsNullOrEmpty(inputAudioFilename))
+			{
+				request.ReplyWithText("No audio file found. Please record audio first.");
+				return;
+			}
+
 			IEnumerable<IList<string>> fragmentIdTuples = (string[][])(dynamicParsedObj.fragmentIdTuples);
 			string langCode = dynamicParsedObj.lang;
+
+
+
+			string message;
+			if (!AreAutoSegmentDependenciesMet(out message))
+			{
+				request.ReplyWithText($"Missing dependency: {message}");
+				return;
+			}
 
 			// When using TTS overrides, there's no Aeneas error message that tells us if the language is unsupported.
 			// Therefore, we explicitly test if the language is supported by the dependency (eSpeak) before getting started.
@@ -137,8 +168,6 @@ namespace Bloom.web.controllers
 				request.ReplyWithText($"eSpeak error: {stdOut}\n{stdErr}");
 				return;
 			}
-			string directoryName = _bookSelection.CurrentSelection.FolderPath + "\\audio";
-			string inputAudioFilename = $"{directoryName}\\{filenameBase}.mp3";
 			// TODO: Also check if .wav if needed. Or maybe first.
 
 			string textFragmentsFilename =  $"{directoryName}/{filenameBase}_fragments.txt";
@@ -162,6 +191,29 @@ namespace Bloom.web.controllers
 			}
 
 			request.ReplyWithText("TRUE"); // Success
+		}
+
+		/// <summary>
+		/// Given a filename base, finds the appropriate extension (if it exists) of a segmentable file.
+		/// </summary>
+		/// <param name="directoryName"></param>
+		/// <param name="fileNameBase"></param>
+		/// <returns>The file path (including directory) of a valid file if it exists, or null otherwise</returns>
+		private string GetFileNameToSegment(string directoryName, string fileNameBase)
+		{
+			var extensions = new string[] { "mp3", "wav" };
+
+			foreach (var extension in extensions)
+			{
+				string filePath = $"{directoryName}\\{fileNameBase}.{extension}";
+
+				if (File.Exists(filePath))
+				{
+					return filePath;
+				}
+			}
+
+			return null;
 		}
 
 		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename, string ttsEngineLang = "en")
