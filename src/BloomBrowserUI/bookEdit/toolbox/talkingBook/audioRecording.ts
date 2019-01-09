@@ -255,8 +255,15 @@ export default class AudioRecording {
                     const errorMessage: string = result.data.substring(
                         "FALSE ".length
                     );
-                    $(kAutoSegmentButtonIdSelector).disableSelection();
-                    toastr.info(errorMessage); // TODO: Not necessarily a toast.
+                    $(kAutoSegmentButtonIdSelector)
+                        .off()
+                        .click(e => toastr.info(errorMessage));
+                    $(kAutoSegmentButtonIdSelector).attr("title", errorMessage); // Sets the hover
+                } else {
+                    $(kAutoSegmentButtonIdSelector)
+                        .off()
+                        .click(e => this.autoSegment());
+                    $(kAutoSegmentButtonIdSelector).attr("title", ""); // Clears the hover
                 }
             }
         );

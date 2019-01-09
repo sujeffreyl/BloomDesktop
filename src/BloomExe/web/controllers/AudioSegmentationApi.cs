@@ -73,6 +73,7 @@ namespace Bloom.web.controllers
 			string stdErr;
 			return DoesCommandCauseError(commandString, workingDirectory, out stdOut, out stdErr, errorCodesToIgnore);
 		}
+
 		// Returns true if the command returned with an error
 		protected bool DoesCommandCauseError(string commandString, string workingDirectory, out string standardOutput, out string standardError, params int[] errorCodesToIgnore)
 		{
