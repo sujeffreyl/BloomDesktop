@@ -230,30 +230,54 @@ div.ui-audioCurrent:not(.disableHighlight) p {
     #audio-autoSegmentWrapper {
         text-align: right;
         vertical-align: middle;
+        background-color: @bloom-panelBackground;
+
+        opacity: 0;
+        //font-size: 0em;
+        border-width: 0px;
+        height: 0px;
+    }
+
+    #audio-autoSegmentWrapper.autoSegmentEnabled {
+        // Animation works best when going from pixel value to pixel value.  We have 12 pixels margin-top,
+        // 15 pixels (probably derived from default font-size 1 em) for button, 1 pixel border-top, 1 pixel border-bottom,
+        // 15 pixels (probably derived from default font-size 1 em) for the status notification
+        // Total is 44 pixels.  (FYI, Firefox cliams 43.3 pixels which is in pretty good agreement)
+        height: 44px;
+        opacity: 1;
+        border-width: 1px;
+        transition: all 300ms;
     }
 
     #audio-autoSegment {
         background-color: transparent;
 
         width: 97px;
-        height: 20px;
+
         border-width: 1px;
         margin-top: 12px;
-        margin-right: 11px;
+        margin-right: 6px;
+
+        // TODO: The height of this button does not grow during the animation. Maybe see if you can make it happen later. I think it's easier said than done, so leave this till to the end.
     }
     #audio-autoSegmentSettings {
-        background-image: url("../../img/cogGrey.svg"); // TOOD: FIX ME with cogGrey.svg. And make a cogWhite
-        background-size: 11px;
+        background-image: url("../../img/cog.svg"); // TODO: Need to make a cogWhite
+        background-size: 15px;
+
+        fill: white;
 
         border: 0px;
         padding: 0px;
 
-        width: 11px;
-        height: 11px;
-        vertical-align: middle;
+        width: 15px;
+        height: 15px;
+        vertical-align: top;
+        margin-top: 16px;
     }
+
     .autoSegmentStatus {
         display: none;
+        color: @bloom-yellow;
     }
 }
 #toast-container {

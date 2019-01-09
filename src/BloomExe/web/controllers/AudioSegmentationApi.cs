@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Bloom.Api;
+using Bloom.Book;
 using Newtonsoft.Json;
 
 namespace Bloom.web.controllers
@@ -15,32 +16,122 @@ namespace Bloom.web.controllers
 	{
 		public const string kApiUrlPart = "audioSegmentation/";
 
-		public AudioSegmentationApi()
+		BookSelection _bookSelection;
+		public AudioSegmentationApi(BookSelection bookSelection)
 		{
+			_bookSelection = bookSelection;
 		}
 
 		public void RegisterWithApiHandler(BloomApiHandler apiHandler)
 		{
 			apiHandler.RegisterEndpointHandler(kApiUrlPart + "autoSegmentAudio", AutoSegment, handleOnUiThread: false, requiresSync : false);
+			apiHandler.RegisterEndpointHandler(kApiUrlPart + "checkAutoSegmentDependencies", CheckAutoSegmentDependenciesMet, handleOnUiThread: false, requiresSync: false);
+		}
+
+		public void CheckAutoSegmentDependenciesMet(ApiRequest request)
+		{
+			// For Auto segment to work, we need at least:
+			// 1) Python (to run Aeneas)
+			// 2) Aeneas (to run splits)
+			// 3) Any Aeneas dependencies, but hopefully the install of Aeneas took care of that
+			//    3A) Espeak is one.
+			// 4) FFMPEG, and not necessarily a stripped-down version
+			// 5) Any FFMPEG dependencies?
+			string workingDirectory = "%HOMEDRIVE%\\%HOMEPATH%";
+			if (DoesCommandCauseError("WHERE python", workingDirectory))
+			{
+				request.ReplyWithText("FALSE Python not found.");
+				return;
+			}
+			else if (DoesCommandCauseError("WHERE espeak", workingDirectory))
+			{
+				request.ReplyWithText("FALSE espeak not found.");
+				return;
+			}
+			else if (DoesCommandCauseError("WHERE ffmpeg", workingDirectory))
+			{
+				request.ReplyWithText("FALSE FFMPEG not found.");
+				return;
+			}
+			else if (DoesCommandCauseError("python -m aeneas.tools.execute_task", workingDirectory, 2))	// Expected to list usage. Error Code 0 = Success, 1 = Error, 2 = Help shown.
+			{
+				request.ReplyWithText("FALSE Aeneas not found in Python environment.");
+				return;
+			}
+			else
+			{
+				// TODO: Check if the file exists. Or maybe not. it'll make the state awkward.
+				request.ReplyWithText("TRUE");
+				return;
+			}
+		}
+
+		// Returns true if the command returned with an error
+		protected bool DoesCommandCauseError(string commandString, string workingDirectory = "", params int[] errorCodesToIgnore)
+		{
+			if (!String.IsNullOrEmpty(workingDirectory))
+			{
+				commandString = $"cd \"{workingDirectory}\" && {commandString}";
+			}
+
+			string arguments = $"/C {commandString} && exit %ERRORLEVEL%";
+			var process = new Process()
+			{
+				StartInfo = new ProcessStartInfo()
+				{
+					FileName = "CMD",
+					Arguments = arguments,
+					UseShellExecute = false,
+					CreateNoWindow = true,
+				},
+			};
+
+			process.Start();
+			process.WaitForExit();
+
+			Debug.Assert(process.ExitCode != -1073741510); // aka 0xc000013a which means that the command prompt exited, and we can't determine what the exit code of the last command was :(
+
+			if (process.ExitCode == 0)
+			{
+				return false;	// No error
+			}
+			else if (errorCodesToIgnore.Length > 0 && errorCodesToIgnore.Contains(process.ExitCode))
+			{
+				// It seemed to return an error, but the caller has actually specified that this error is nothing to worry about, so return no error
+				return false;
+			}
+			else
+			{
+				// Error
+				return true;
+			}
 		}
 
 		public void AutoSegment(ApiRequest request)
 		{
-			string inputAudioFilename = @"C:\Users\SuJ\Documents\Bloom\My Source Collection\audioSync whole Spare\audio\c97062fa-b09f-4965-b24b-88487bcd5761.mp3";
-			string directoryName = Path.GetDirectoryName(inputAudioFilename);
-			string filenameBase = Path.GetFileNameWithoutExtension(inputAudioFilename);
+			// Parse the JSON containing the text segmentation data.
+			var dynamicParsedObj = DynamicJson.Parse(request.RequiredPostJson());
+			string filenameBase = dynamicParsedObj.audioFilenameBase;
+			string[][] fragmentIdTuples = dynamicParsedObj.fragmentIdTuples;
+			string langCode = dynamicParsedObj.lang;
+
+			string directoryName = _bookSelection.CurrentSelection.FolderPath + "\\audio";
+			string inputAudioFilename = $"{directoryName}\\{filenameBase}.mp3";
+			// TODO: Also check if .wav if needed. Or maybe first.
+
 			string textFragmentsFilename =  $"{directoryName}/{filenameBase}_fragments.txt";
 			string audioTimingsFilename = $"{directoryName}/{filenameBase}_timings.srt";
 
-			// Parse the JSON containing the text segmentation data.
-			IEnumerable<IList<string>> parsedTextSegmentationObj = JsonConvert.DeserializeObject<string[][]>(request.RequiredPostJson());
+			IEnumerable<IList<string>> parsedTextSegmentationObj = fragmentIdTuples;
+			// TODO: CLEANUP
+			//IEnumerable<IList<string>> parsedTextSegmentationObj = JsonConvert.DeserializeObject<string[][]>(request.RequiredPostJson());
 			parsedTextSegmentationObj = parsedTextSegmentationObj.Where(subarray => !String.IsNullOrWhiteSpace(subarray[0]));	// Remove entries containing only whitespace
 			var fragmentList = parsedTextSegmentationObj.Select(subarray => subarray[0]);
 			var idList = parsedTextSegmentationObj.Select(subarray => subarray[1]).ToList();
 
 			File.WriteAllLines(textFragmentsFilename, fragmentList);
 
-			var timingStartEndRangeList = GetSplitStartEndTimings(inputAudioFilename, textFragmentsFilename, audioTimingsFilename);
+			var timingStartEndRangeList = GetSplitStartEndTimings(inputAudioFilename, textFragmentsFilename, audioTimingsFilename, langCode);
 
 			ExtractAudioSegments(idList, timingStartEndRangeList, directoryName, inputAudioFilename);
 
@@ -48,13 +139,13 @@ namespace Bloom.web.controllers
 			request.ReplyWithBoolean(true); // Success
 		}
 
-		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename)
+		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename, string ttsEngineLang = "en")
 		{
-			string lang = "en";
+			string aeneasLang = "en";   // Maybe just leave it as "en" the whole time and rely on the TTS override to specify the real lang
 
 			// Note: The version of FFMPEG in output/Debug or output/Release is probably not compatible with the version required by Aeneas.
 			// Thus, change the working path to something that hopefully doesn't contain our FFMPEG version.
-			string commandString = $"cd %HOMEDRIVE%\\%HOMEPATH% && python -m aeneas.tools.execute_task \"{inputAudioFilename}\" \"{inputTextFragmentsFilename}\" \"task_language={lang}|is_text_type=plain|os_task_file_format=srt\" \"{outputTimingsFilename}\"";
+			string commandString = $"cd %HOMEDRIVE%\\%HOMEPATH% && python -m aeneas.tools.execute_task \"{inputAudioFilename}\" \"{inputTextFragmentsFilename}\" \"task_language={aeneasLang}|is_text_type=plain|os_task_file_format=srt\" \"{outputTimingsFilename}\" --runtime-configuration=\"tts_voice_code={ttsEngineLang}\"";
 
 			var processStartInfo = new ProcessStartInfo()
 			{
@@ -141,18 +232,19 @@ namespace Bloom.web.controllers
 		public Task<int> ExtractAudioSegmentAsync(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
 		{
 			string commandString = $"ffmpeg -i \"{inputAudioFilename}\" -acodec copy -ss {timingStartString} -to {timingEndString} \"{outputSplitFilename}\"";
+			var startInfo = new ProcessStartInfo(fileName: "CMD", arguments: $"/C {commandString}");
 
-			return RunProcessAsync("CMD", $"/C {commandString}");
+			return RunProcessAsync(startInfo);
 		}
 
-		// Allows you to potentially asynchronously wait the completion of the process
-		public static Task<int> RunProcessAsync(string fileName, string arguments)
+		// Starts a process and returns a task (that you can use to wait/await for the completion of the process0
+		public static Task<int> RunProcessAsync(ProcessStartInfo startInfo)
 		{
 			var tcs = new TaskCompletionSource<int>();
 
 			var process = new Process
 			{
-				StartInfo = { FileName = fileName, Arguments = arguments },
+				StartInfo = startInfo,
 				EnableRaisingEvents = true
 			};
 

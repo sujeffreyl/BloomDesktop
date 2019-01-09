@@ -58,6 +58,8 @@ const kRecordingModeClickHandler: string =
     "audio-recordingModeControl-clickHandler";
 const kAutoSegmentButtonId = "audio-autoSegment";
 const kAutoSegmentButtonIdSelector = "#" + kAutoSegmentButtonId;
+const kAutoSegmentWrapperIdSelector = "#audio-autoSegmentWrapper";
+const kAutoSegmentEnabledClass = "autoSegmentEnabled";
 
 // TODO: We would actually like this to have (conceptually) different state for each text box, not a single one per page.
 // This would allow us to set a separate audio-recording mode for each state.
@@ -220,11 +222,44 @@ export default class AudioRecording {
             // in whatever mode the user had it in. Since the mode input is disabled, it
             // won't get set to anything else until we select a non-xMatter page.
             this.audioRecordingMode = AudioRecordingMode.Sentence;
-        } else if (this.audioRecordingMode == AudioRecordingMode.Sentence) {
-            this.recordingModeInput.checked = true;
-        } else if (this.audioRecordingMode == AudioRecordingMode.TextBox) {
-            this.recordingModeInput.checked = false;
+        } else {
+            if (this.audioRecordingMode == AudioRecordingMode.Sentence) {
+                this.recordingModeInput.checked = true;
+            } else if (this.audioRecordingMode == AudioRecordingMode.TextBox) {
+                this.recordingModeInput.checked = false;
+            }
+
+            this.setupForAutoSegment();
         }
+    }
+
+    // Initialize the initial state of the autoSegment controls
+    private setupForAutoSegment() {
+        if (this.audioRecordingMode == AudioRecordingMode.TextBox) {
+            $(kAutoSegmentWrapperIdSelector).addClass(kAutoSegmentEnabledClass);
+            const statusElement: JQuery = $(".autoSegmentStatus");
+            statusElement.get(0).innerText = "";
+        } else {
+            $(kAutoSegmentWrapperIdSelector).removeClass(
+                kAutoSegmentEnabledClass
+            );
+        }
+
+        // Note: Just letting these happen asynchronously. It doesn't take long, but it should get called right when the tool gets called.
+        //   It may also get called again later on, when the user actually expands the tool.
+        //   We should already have the correct state but no big deal to check it again at that time.
+        BloomApi.get(
+            "audioSegmentation/checkAutoSegmentDependencies",
+            result => {
+                if (result.data.startsWith("FALSE")) {
+                    const errorMessage: string = result.data.substring(
+                        "FALSE ".length
+                    );
+                    $(kAutoSegmentButtonIdSelector).disableSelection();
+                    toastr.info(errorMessage); // TODO: Not necessarily a toast.
+                }
+            }
+        );
     }
 
     public setupForListen() {
@@ -695,6 +730,8 @@ export default class AudioRecording {
             this.audioRecordingMode = AudioRecordingMode.Sentence;
             checkbox.checked = true;
         }
+
+        this.setupForAutoSegment();
 
         // Update the collection's default recording span mode to the new value
         BloomApi.postJson(
@@ -1577,6 +1614,8 @@ export default class AudioRecording {
     }
 
     private autoSegment(): void {
+        const currentDivId = this.getCurrentElement().id;
+
         const fragmentIdTuples = this.extractFragmentsForAudioSegmentation();
 
         if (fragmentIdTuples.length > 0) {
@@ -1584,9 +1623,15 @@ export default class AudioRecording {
             statusElement.get(0).innerText = "Segmenting...";
             statusElement.css("display", "block");
 
+            const inputParameters = {
+                audioFilenameBase: currentDivId,
+                fragmentIdTuples: fragmentIdTuples,
+                lang: this.getAutoSegmentLanguageCode()
+            };
+
             BloomApi.postJson(
                 "audioSegmentation/autoSegmentAudio",
-                JSON.stringify(fragmentIdTuples),
+                JSON.stringify(inputParameters),
                 result => {
                     toastr.info("Result returned: " + result.data);
                     statusElement.get(0).innerText = "Done";
@@ -1601,6 +1646,9 @@ export default class AudioRecording {
             );
 
             // TODO: Probably disable some controls while this is going on. Especially the Clear() one. Record by sentences echeckbox wouldn't hurt either.
+            // TODO: If there are multiple text boxes per page, it resets focus to the wrong thing.
+            // TODO: If there are multiple text boxes on a page, maybe it shouldnt segment all of them.
+            //       But the setting is for all of them on the page.  Ugh. Awkward.
 
             // TODO: Unittest what you can
         }
@@ -1628,6 +1676,23 @@ export default class AudioRecording {
         }
 
         return fragmentIdTuples;
+    }
+
+    private getAutoSegmentLanguageCode(): string {
+        const langCodeFromAutoSegmentSettings = ""; // TODO: IMPLEMENT ME
+        let langCode = langCodeFromAutoSegmentSettings;
+        if (!langCode) {
+            const currentDiv = this.getCurrent();
+            langCode = currentDiv.attr("lang");
+        }
+
+        // Remove the suffix for things like es-BRAI
+        const countryCodeSeparatorIndex = langCode.indexOf("-");
+        if (countryCodeSeparatorIndex >= 0) {
+            langCode = langCode.substr(0, countryCodeSeparatorIndex);
+        }
+
+        return langCode;
     }
 
     private getCurrentText(): string {
