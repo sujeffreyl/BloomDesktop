@@ -16,6 +16,7 @@ namespace Bloom.web.controllers
 	{
 		public const string kApiUrlPart = "audioSegmentation/";
 		private const string kWorkingDirectory = "%HOMEDRIVE%\\%HOMEPATH%";
+		private const string kTimingsOutputFormat = "tsv";
 
 		BookSelection _bookSelection;
 		public AudioSegmentationApi(BookSelection bookSelection)
@@ -29,6 +30,11 @@ namespace Bloom.web.controllers
 			apiHandler.RegisterEndpointHandler(kApiUrlPart + "checkAutoSegmentDependencies", CheckAutoSegmentDependenciesMet, handleOnUiThread: false, requiresSync: false);
 		}
 
+		/// <summary>
+		/// API Handler which
+		/// Returns "TRUE" if success, otherwiese "FALSE" followed by an error message if not.
+		/// </summary>
+		/// <param name="request"></param>
 		public void CheckAutoSegmentDependenciesMet(ApiRequest request)
 		{
 			// For Auto segment to work, we need at least:
@@ -47,7 +53,8 @@ namespace Bloom.web.controllers
 			}
 			else
 			{
-				// TODO: Check if the file exists. Or maybe not. it'll make the state awkward.
+				// Note: We could also check if an audio file exists. But I think it's best to delay that check until absolutely needed.
+				// It makes the state updates when the user records or deletes audio more complicated for little gain I think.
 				request.ReplyWithText("TRUE");
 				return;
 			}
@@ -148,7 +155,7 @@ namespace Bloom.web.controllers
 			}
 
 			IEnumerable<IList<string>> fragmentIdTuples = (string[][])(dynamicParsedObj.fragmentIdTuples);
-			string langCode = dynamicParsedObj.lang;
+			string requestedLangCode = dynamicParsedObj.lang;
 
 
 
@@ -161,17 +168,27 @@ namespace Bloom.web.controllers
 
 			// When using TTS overrides, there's no Aeneas error message that tells us if the language is unsupported.
 			// Therefore, we explicitly test if the language is supported by the dependency (eSpeak) before getting started.
-			string stdOut, stdErr;
-			if (DoesCommandCauseError($"espeak -v {langCode} -q \"hello world\"", kWorkingDirectory, out stdOut, out stdErr))
+			string langCode = null;
+			var langCodesToTry = new string[] { requestedLangCode, "eo", "en" }; // "eo" is Esperanto
+			string stdOut = "";
+			string stdErr = "";
+			foreach (var langCodeToTry in langCodesToTry)
+			{
+				if (!DoesCommandCauseError($"espeak -v {langCodeToTry} -q \"hello world\"", kWorkingDirectory, out stdOut, out stdErr))
+				{
+					langCode = langCodeToTry;
+					break;
+				}
+			}
+			if (String.IsNullOrEmpty(langCode))
 			{
 				// FYI: The error message is expected to be in stdError with an empty stdOut, but I included both just in case.
 				request.ReplyWithText($"eSpeak error: {stdOut}\n{stdErr}");
 				return;
 			}
-			// TODO: Also check if .wav if needed. Or maybe first.
 
 			string textFragmentsFilename =  $"{directoryName}/{filenameBase}_fragments.txt";
-			string audioTimingsFilename = $"{directoryName}/{filenameBase}_timings.srt";
+			string audioTimingsFilename = $"{directoryName}/{filenameBase}_timings.{kTimingsOutputFormat}";
 
 			fragmentIdTuples = fragmentIdTuples.Where(subarray => !String.IsNullOrWhiteSpace(subarray[0]));	// Remove entries containing only whitespace
 			var fragmentList = fragmentIdTuples.Select(subarray => subarray[0]);
@@ -218,11 +235,21 @@ namespace Bloom.web.controllers
 
 		public List<Tuple<string, string>> GetSplitStartEndTimings(string inputAudioFilename, string inputTextFragmentsFilename, string outputTimingsFilename, string ttsEngineLang = "en")
 		{
-			string aeneasLang = "en";   // Maybe just leave it as "en" the whole time and rely on the TTS override to specify the real lang
+			// Just setting some default value here (Esperanto - which is more phonetic so we think it works well for a large variety),
+			// but really rely-ing on the TTS override to specify the real lang, so this value doesn't really matter.
+			string aeneasLang = "eo";
 
 			// Note: The version of FFMPEG in output/Debug or output/Release is probably not compatible with the version required by Aeneas.
 			// Thus, change the working path to something that hopefully doesn't contain our FFMPEG version.
-			string commandString = $"cd %HOMEDRIVE%\\%HOMEPATH% && python -m aeneas.tools.execute_task \"{inputAudioFilename}\" \"{inputTextFragmentsFilename}\" \"task_language={aeneasLang}|is_text_type=plain|os_task_file_format=srt\" \"{outputTimingsFilename}\" --runtime-configuration=\"tts_voice_code={ttsEngineLang}\"";
+			string changeDirectoryCommand = "cd %HOMEDRIVE%\\%HOMEPATH% && ";
+
+			// I think this sets the boundary to the midpoint between the end of the previous sentence and the start of the next one.
+			// This is good because by default, it would align it such that the subsequent audio started as close as possible to the beginning of it. Since there is a subtle pause when switching between two audio files, this left very little margin for error.
+			string boundaryAdjustmentParams = "|task_adjust_boundary_algorithm=percent|task_adjust_boundary_percent_value=50";
+
+			// This identifies a "head" region of 0-12 seconds of silence/non-intelligible, which will prevent it from being included in the first sentence's audio. (FYI, the hidden format will suppress it from the output timings file).
+			string audioHeadParams = "|os_task_file_head_tail_format=hidden|is_audio_file_detect_head_min=0.00|is_audio_file_detect_head_max=12.00";
+			string commandString = $"{changeDirectoryCommand} python -m aeneas.tools.execute_task \"{inputAudioFilename}\" \"{inputTextFragmentsFilename}\" \"task_language={aeneasLang}|is_text_type=plain|os_task_file_format={kTimingsOutputFormat}{audioHeadParams}{boundaryAdjustmentParams}\" \"{outputTimingsFilename}\" --runtime-configuration=\"tts_voice_code={ttsEngineLang}\"";
 
 			var processStartInfo = new ProcessStartInfo()
 			{
@@ -248,12 +275,58 @@ namespace Bloom.web.controllers
 
 			// This might throw exceptions, but IMO best to let the error handler pass it, and have the Javascript code be as robust as possible, instead of passing on error messages to user
 			var segmentationResults = File.ReadAllLines(outputTimingsFilename);
-			var timingStartEndRangeList = ParseTimingFileSRT(segmentationResults);
+
+			List<Tuple<string, string>> timingStartEndRangeList;
+			if (kTimingsOutputFormat.Equals("srt", StringComparison.OrdinalIgnoreCase))
+			{
+				timingStartEndRangeList = ParseTimingFileSRT(segmentationResults);
+			}
+			else
+			{
+				timingStartEndRangeList = ParseTimingFileTSV(segmentationResults);
+			}
+			
 			return timingStartEndRangeList;
 		}
 
+
 		/// <summary>
-		/// 
+		/// Parses the contents of a timing file and returns the start and end timing fields as a list of tuples.
+		/// </summary>
+		/// <param name="segmentationResults">The contents (line-by-line) of a .tsv timing file</param>
+		private List<Tuple<string, string>> ParseTimingFileTSV(IEnumerable<string> segmentationResults)
+		{
+			var timings = new List<Tuple<string, string>>();
+
+			foreach (string line in segmentationResults)
+			{
+				var fields = line.Split('\t');
+				string timingStart = (fields.Length > 0 ? fields[0].Trim() : null);
+				string timingEnd = (fields.Length > 1 ? fields[1].Trim() : null);
+
+				if (String.IsNullOrEmpty(timingStart))
+				{
+					if (!timings.Any())
+					{
+						timingStart = "0.000";
+					}
+					else
+					{
+						timingStart = timings.Last().Item2;
+					}
+				}
+
+				// If timing end is messed up, we'll continue to pass the record. In theory, it is valid for the timings to be defined solely by the start times (as long as you don't need the highlight to disappear for a time)
+				// so don't remove records where the end time is missing
+
+				timings.Add(Tuple.Create(timingStart, timingEnd));
+			}
+
+			return timings;
+		}
+
+		/// <summary>
+		/// Parses the contents of a timing file and returns the start and end timing fields as a list of tuples.
 		/// </summary>
 		/// <param name="segmentationResults">The contents (line-by-line) of a .srt timing file</param>
 		private List<Tuple<string, string>> ParseTimingFileSRT(IList<string> segmentationResults)
@@ -292,6 +365,13 @@ namespace Bloom.web.controllers
 			return timings;
 		}
 
+		/// <summary>
+		/// Given a list of timings, segments a whole audio file into the individual pieces specified by the timing list
+		/// </summary>
+		/// <param name="idList"></param>
+		/// <param name="timingStartEndRangeList"></param>
+		/// <param name="directoryName"></param>
+		/// <param name="inputAudioFilename"></param>
 		private void ExtractAudioSegments(IList<string> idList, IList<Tuple<string, string>> timingStartEndRangeList, string directoryName, string inputAudioFilename)
 		{
 			Debug.Assert(idList.Count == timingStartEndRangeList.Count, $"Number of text fragments ({idList.Count}) does not match number of extracted timings ({timingStartEndRangeList.Count}). The parsed timing ranges might be completely incorrect. The last parsed timing is: ({timingStartEndRangeList.Last()?.Item1 ?? "null"}, {timingStartEndRangeList.Last()?.Item2 ?? "null"}).");
@@ -313,6 +393,14 @@ namespace Bloom.web.controllers
 			Task.WaitAll(tasksToWait.ToArray());
 		}
 
+		/// <summary>
+		/// Given a single timing, extract the specified segment of audio
+		/// </summary>
+		/// <param name="inputAudioFilename"></param>
+		/// <param name="timingStartString"></param>
+		/// <param name="timingEndString"></param>
+		/// <param name="outputSplitFilename"></param>
+		/// <returns></returns>
 		public Task<int> ExtractAudioSegmentAsync(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
 		{
 			string commandString = $"ffmpeg -i \"{inputAudioFilename}\" -acodec copy -ss {timingStartString} -to {timingEndString} \"{outputSplitFilename}\"";
