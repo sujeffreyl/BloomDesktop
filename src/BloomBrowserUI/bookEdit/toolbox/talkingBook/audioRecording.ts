@@ -1389,10 +1389,12 @@ export default class AudioRecording {
                     newId = reuseThis.id;
                     newMd5 = ' recordingmd5="' + reuseThis.md5 + '"';
                 }
-                if (!newId && fragment.text in this.sentenceToId) {
-                    newId = this.sentenceToId[fragment.text];
-                } else {
-                    newId = this.createValidXhtmlUniqueId();
+                if (!newId) {
+                    if (fragment.text in this.sentenceToId) {
+                        newId = this.sentenceToId[fragment.text];
+                    } else {
+                        newId = this.createValidXhtmlUniqueId();
+                    }
                 }
                 newHtml +=
                     '<span id= "' +
