@@ -758,6 +758,178 @@ describe("audio recording tests", () => {
         );
     });
 
+    it("initializeForMarkupAsync gets mode from current div if available (synchronous) (Sentence)", () => {
+        SetupIFrameFromHtml(
+            "<div class='bloom-editable' lang='en' data-audioRecordingMode='Sentence'>Sentence 1. Sentence 2.</div><div class='bloom-editable ui-audioCurrent' lang='es' data-audioRecordingMode='TextBox'>Paragraph 2.</div>"
+        );
+
+        const recording = new AudioRecording();
+        recording.audioRecordingMode = AudioRecordingMode.Sentence;
+        recording.recordingModeInput = document.createElement("input");
+
+        // Just to make sure that the code under test can read the current div at all.
+        const currentDiv = recording.getCurrentDiv();
+        expect(currentDiv).toBeTruthy(
+            "Could not find currentDiv. Possible test setup problem?"
+        );
+
+        // Even though the function is named async, but most cases will actually happen synchronously.
+        // We'll only bother testing the synchronous cases.
+        recording.initializeForMarkupAsync();
+
+        expect(recording.audioRecordingMode).toBe(AudioRecordingMode.TextBox);
+        expect(recording.recordingModeInput.checked).toBe(
+            false,
+            "Checkbox state"
+        );
+    });
+
+    it("initializeForMarkupAsync gets mode from current div if available (synchronous) (TextBox)", () => {
+        SetupIFrameFromHtml(
+            "<div class='bloom-editable' lang='en' data-audioRecordingMode='TextBox'>Pargraph 1.</div><div class='bloom-editable ui-audioCurrent' lang='es' data-audioRecordingMode='Sentence'>Paragraph 2.</div>"
+        );
+
+        const recording = new AudioRecording();
+        recording.audioRecordingMode = AudioRecordingMode.Sentence;
+        recording.recordingModeInput = document.createElement("input");
+
+        // Just to make sure that the code under test can read the current div at all.
+        const currentDiv = recording.getCurrentDiv();
+        expect(currentDiv).toBeTruthy(
+            "Could not find currentDiv. Possible test setup problem?"
+        );
+
+        // Even though the function is named async, but most cases will actually happen synchronously.
+        // We'll only bother testing the synchronous cases.
+        recording.initializeForMarkupAsync();
+
+        expect(recording.audioRecordingMode).toBe(AudioRecordingMode.Sentence);
+        expect(recording.recordingModeInput.checked).toBe(
+            true,
+            "Checkbox state"
+        );
+    });
+
+    it("initializeForMarkupAsync gets mode from other divs on page as fallback (synchronous) (TextBox)", () => {
+        SetupIFrameFromHtml(
+            "<div class='bloom-editable' lang='en' data-audioRecordingMode='TextBox'>Paragraph 1</div><div class='bloom-editable ui-audioCurrent' lang='es'>Paragraph 2.</div>"
+        );
+
+        const recording = new AudioRecording();
+        recording.audioRecordingMode = AudioRecordingMode.Sentence;
+        recording.recordingModeInput = document.createElement("input");
+
+        // Just to make sure that the code under test can read the current div at all.
+        const currentDiv = recording.getCurrentDiv();
+        expect(currentDiv).toBeTruthy(
+            "Could not find currentDiv. Possible test setup problem?"
+        );
+
+        // Even though the function is named async, but most cases will actually happen synchronously.
+        // We'll only bother testing the synchronous cases.
+        recording.initializeForMarkupAsync();
+
+        expect(recording.audioRecordingMode).toBe(AudioRecordingMode.TextBox);
+        expect(recording.recordingModeInput.checked).toBe(
+            false,
+            "Checkbox state"
+        );
+    });
+
+    it("initializeForMarkupAsync gets mode from other divs on page as fallback (synchronous) (Sentence)", () => {
+        SetupIFrameFromHtml(
+            "<div class='bloom-editable' lang='en' data-audioRecordingMode='Sentence'>Paragraph 1</div><div class='bloom-editable ui-audioCurrent' lang='es'>Paragraph 2.</div>"
+        );
+
+        const recording = new AudioRecording();
+        recording.audioRecordingMode = AudioRecordingMode.TextBox;
+        recording.recordingModeInput = document.createElement("input");
+
+        // Just to make sure that the code under test can read the current div at all.
+        const currentDiv = recording.getCurrentDiv();
+        expect(currentDiv).toBeTruthy(
+            "Could not find currentDiv. Possible test setup problem?"
+        );
+
+        // Even though the function is named async, but most cases will actually happen synchronously.
+        // We'll only bother testing the synchronous cases.
+        recording.initializeForMarkupAsync();
+
+        expect(recording.audioRecordingMode).toBe(AudioRecordingMode.Sentence);
+        expect(recording.recordingModeInput.checked).toBe(
+            true,
+            "Checkbox state"
+        );
+    });
+
+    it("initializeForMarkupAsync identifies 4.3 audio-sentences (synchronous)", () => {
+        SetupIFrameFromHtml(
+            "<div class='bloom-editable' lang='en'><span id='id1' class='audio-sentence'>Sentence 1.</span> <span id='id2' class='audio-sentence'>Sentence 2.</span></div><div class='bloom-editable ui-audioCurrent' lang='es'>Paragraph 2.</div>"
+        );
+
+        const recording = new AudioRecording();
+        recording.audioRecordingMode = AudioRecordingMode.TextBox;
+        recording.recordingModeInput = document.createElement("input");
+
+        // Just to make sure that the code under test can read the current div at all.
+        const currentDiv = recording.getCurrentDiv();
+        expect(currentDiv).toBeTruthy(
+            "Could not find currentDiv. Possible test setup problem?"
+        );
+
+        // Even though the function is named async, but most cases will actually happen synchronously.
+        // We'll only bother testing the synchronous cases.
+        recording.initializeForMarkupAsync();
+
+        expect(recording.audioRecordingMode).toBe(AudioRecordingMode.Sentence);
+        expect(recording.recordingModeInput.checked).toBe(
+            true,
+            "Checkbox state"
+        );
+    });
+
+    it("isRecordableDiv works", () => {
+        const recording = new AudioRecording();
+
+        let elem = document.createElement("div");
+
+        elem.classList.add("bloom-editable");
+        expect(recording.isRecordableDiv(elem, false)).toBe(
+            false,
+            "Case 1A: no text"
+        );
+        elem.appendChild(document.createTextNode("Hello world"));
+        expect(recording.isRecordableDiv(elem, false)).toBe(
+            true,
+            "Case 1B: text"
+        );
+
+        const parent = document.createElement("div");
+        parent.classList.add("bloom-noAudio");
+        parent.appendChild(elem);
+        expect(recording.isRecordableDiv(elem, false)).toBe(
+            false,
+            "Case 2: parent is no-audio"
+        );
+
+        elem = document.createElement("div");
+        expect(recording.isRecordableDiv(elem, false)).toBe(
+            false,
+            "Case 3: not recordable"
+        );
+
+        // FYI... the :visible selector never seemed to select this (possibly an artificat of test environment),
+        //    even after attempting to setup style.height and style.display. So this test probably always return true
+        elem = document.createElement("div");
+        elem.style.display = "none";
+        elem.classList.add("bloom-editable");
+        elem.appendChild(document.createTextNode("Hello world"));
+        expect(recording.isRecordableDiv(elem, true)).toBe(
+            false,
+            "Case 4: Element not visible"
+        );
+    });
+
     it("getCurrentText works", () => {
         SetupIFrameFromHtml("<div class='ui-audioCurrent'>Hello world</div>");
 
