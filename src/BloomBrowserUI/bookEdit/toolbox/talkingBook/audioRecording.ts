@@ -204,7 +204,7 @@ export default class AudioRecording {
         if (
             this.getPageDocBody().find("[data-audioRecordingMode]").length > 0
         ) {
-            // We are able to identify and load the mode directly from the HTML
+            // We are able to identify and load the mode directly from the HTML from a different text box on the page
             const audioRecordingModeStr: string = this.getPageDocBody()
                 .find("[data-audioRecordingMode]")
                 .first()
@@ -405,6 +405,7 @@ export default class AudioRecording {
         });
     }
 
+    // Corresponds to getRecordableDivs() but only applies the check to the current element
     public isRecordableDiv(
         element: Element | null,
         includeCheckForText: boolean = true
@@ -815,7 +816,7 @@ export default class AudioRecording {
 
     // For now, we know this is a checkbox, so we just need to toggle the value.
     // In the future, there may be more than two values and we will need to pass in a parameter to let us know which mode to switch to
-    private updateRecordingMode(forceOverwrite: boolean = false) {
+    public updateRecordingMode(forceOverwrite: boolean = false) {
         // Check if there are any audio recordings present.
         //   If so, these would become invalidated (and deleted down the road when the book's unnecessary files gets cleaned up)
         //   Warn the user if this deletion could happen
@@ -849,8 +850,14 @@ export default class AudioRecording {
         );
 
         // Update the UI
-        const enforceCurrent = true;
-        this.updateMarkupAndControlsToCurrentText(enforceCurrent);
+        // allowUpdateOfCurrent = false because it can be potentially too unintuitive to update the state of the checkbox upon clicking the checkbox.
+        //     Imagine Box 1 is highlighted and is in By Sentence Mode. The user clicks on Box 2 but UpdateMarkup() has not been called yet. Box 2 is currently in By Text Box mode.
+        //     If allowUpdateOfCurrent is true, then the current will be moved to Box 2, and then we will swap it back to By Sentence Mode, which makes it look like nothing happened.
+        //     Although it is debatable whether the user really meant to adjust Box 1 or Box 2... I think it's better to assume the user meant Box 1.
+        //       Assuming Box 2 is very confusing because the checkbox state never visually represented the old state and it may result in the checkbox not visually changing upon click which is confusing.
+        //       Also I think the better solution to if they meant Box 2 is to have the Current Highlight change on mouse click not just on typing.
+        const allowUpdateOfCurrent = false;
+        this.updateMarkupAndControlsToCurrentText(allowUpdateOfCurrent);
     }
 
     private enableRecordingModeControl() {
@@ -940,6 +947,8 @@ export default class AudioRecording {
             pageFrame.contentDocument.activeElement &&
             this.isRecordableDiv(pageFrame.contentDocument.activeElement)
         ) {
+            // FYI: The active element is the one that has "focus."  It may be a lot of other elements on the page, so definitely make sure to check that it is valid first (e.g. check IsRecordableDiv())
+            // If the cursor is within a span within a div, it is the div that is the activeElement.  This is both a good thing (when we want to know what div the user is in) and a bad thing (in by sentence mode, we'd really prefer to know what span they're in but this is not trivial)
             const currentDiv = pageFrame.contentDocument.activeElement;
 
             const audioCurrentList = this.getPageDocBody().find(
@@ -957,6 +966,8 @@ export default class AudioRecording {
         }
     }
 
+    // Returns the div with the Current Highlight on it (that is, the one with .ui-audioCurrent class applied)
+    // It will also attempt to set it in case no such Current Highlight exists (which is often an errornous state arrived at by race condition)
     public getCurrentDiv(): HTMLElement | null {
         const page = this.getPageDocBody();
         let audioCurrent = page.find(".ui-audioCurrent");
@@ -999,12 +1010,20 @@ export default class AudioRecording {
 
     // Called on initial setup and on toolbox updateMarkup(), including when a new page is created with Talking Book tab open
     public updateMarkupAndControlsToCurrentText(
-        enforceCurrent: boolean = false
+        allowUpdateOfCurrent: boolean = true
     ): void {
+        // Basic outline:
+        // * This function gets called when the user types something, and sometimes upon initialization of the talking book tool too (if there is text)
+        // * First, see if we should update the Current Highlight to the element with the active focus instead.
+        // * Then, ensure all the state is initialized.
+        // * Now that we're finally ready, change the HTML markup with the audio-sentence classes, ids, etc.
+        // * Adjust the Current Highlight appropriately.
+        // * (keep adjusting the current highlight to) fight with timing issues
+
         // Enhance: it would be nice/significantly more intuitive if this (or a stripped-down version that just moves the highlight/audio recording mode) could run when the mouse focus changes.
-        if (!enforceCurrent) {
+        if (allowUpdateOfCurrent) {
             this.updateCurrentDivAsync(() => {
-                this.updateMarkupAndControlsToCurrentText(true);
+                this.updateMarkupAndControlsToCurrentText(false);
             });
             return;
         }
@@ -1016,7 +1035,7 @@ export default class AudioRecording {
         }
 
         if (!this.isFullyInitialized()) {
-            this.initializeForMarkup(() => {
+            this.initializeForMarkupAsync(() => {
                 this.updateMarkupAndControlsToCurrentText();
             });
             return;
@@ -1038,6 +1057,7 @@ export default class AudioRecording {
         }
 
         this.makeAudioSentenceElements(unionedElementsToProcess);
+
         // For displaying the qtip, restrict the set of divs to the ones that have audio sentences.
         unionedElementsToProcess = unionedElementsToProcess.has(
             kAudioSentenceClassSelector
@@ -1047,10 +1067,11 @@ export default class AudioRecording {
         //thisClass.setStatus('record', Status.Expected);
         thisClass.levelCanvas = $("#audio-meter").get()[0];
 
+        // This synchronous call probably makes the flashing problem even more likely compared to delaying it but I think it is helpful if the state is being rapidly modified.
         this.setCurrentAudioElementToFirstAudioSentenceWithinElement(
             currentDiv,
             false
-        ); // This synchronous call probably makes the flashing problem even more likely compared to delaying it but I think it is helpful if the state is being rapidly modified.
+        );
 
         // Note: Marking up the Current Element needs to happen after CKEditor's onload() fully finishes.  (onload sets the HTML of the bloom-editable to its original value, so it can wipe out any changes made to the original value).
         //   There is a race condition as to which one finishes first.  We need to  finish AFTER Ckeditor's onload()
@@ -1148,6 +1169,8 @@ export default class AudioRecording {
         // This possibly moved the highlight to a different text box, so we need to re-compute settings.
         if (this.getAudioFilePresent()) {
             this.disableRecordingModeControl();
+        } else {
+            this.enableRecordingModeControl();
         }
     }
 
@@ -1970,12 +1993,6 @@ export default class AudioRecording {
                     this.processAutoSegmentResponse(result, statusElement);
                 }
             );
-
-            // TODO: If there are multiple text boxes per page, it always resets focus to the first box.
-            //       But it does that even with the checkbox, so I don't know what I can do about it.
-            //       Well, if you saved some state, you could probalby code it up. And that switch modes functionality is new, not set in stone.
-            // TODO: If there are multiple text boxes on a page, maybe it shouldnt segment all of them.
-            //       But the setting is for all of them on the page.  Ugh. Awkward.
         }
     }
 
