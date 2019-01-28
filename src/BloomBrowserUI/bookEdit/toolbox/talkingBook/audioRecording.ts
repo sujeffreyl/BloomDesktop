@@ -206,7 +206,7 @@ export default class AudioRecording {
             this.getPageDocBodyJQuery().find("[data-audioRecordingMode]")
                 .length > 0
         ) {
-            // We are able to identify and load the mode directly from the HTML from a different text box on the page
+            // For a text box that doesn't already have mode specified, first fallback is to make it the same as another text box on the page that does have it
             const audioRecordingModeStr: string = this.getPageDocBodyJQuery()
                 .find("[data-audioRecordingMode]")
                 .first()
@@ -870,8 +870,8 @@ export default class AudioRecording {
         );
 
         // Update the UI
-        // allowUpdateOfCurrent = false because it can be potentially too unintuitive to update the state of the checkbox upon clicking the checkbox.
-        //     Imagine Box 1 is highlighted and is in By Sentence Mode. The user clicks on Box 2 but UpdateMarkup() has not been called yet. Box 2 is currently in By Text Box mode.
+        // allowUpdateOfCurrent = false because it can be potentially too unintuitive to allow updateMarkup...() to update the state of the checkbox upon clicking the checkbox
+        //     Imagine Box 1 is highlighted and is in By Sentence Mode. The user clicks on Box 2 (and UpdateMarkup() is not called (yet)). Box 2 is currently in By Text Box mode.
         //     If allowUpdateOfCurrent is true, then the current will be moved to Box 2, and then we will swap it back to By Sentence Mode, which makes it look like nothing happened.
         //     Although it is debatable whether the user really meant to adjust Box 1 or Box 2... I think it's better to assume the user meant Box 1.
         //       Assuming Box 2 is very confusing because the checkbox state never visually represented the old state and it may result in the checkbox not visually changing upon click which is confusing.
@@ -1021,8 +1021,9 @@ export default class AudioRecording {
         return currToExamine;
     }
 
-    // Checks the current focused element to see if we should move the current highlight to it instead.
+    // Checks to see if we should move the Current Highlight to the actively focused element instead.
     private updateCurrentDivAsync(doneCallback?: () => void): void {
+        // TODO: Fix bug where current highlight is moved if the old current is contained inside the new current. (And recording mode = Sentence? Maybe?)
         const pageFrame = this.getPageFrame();
 
         if (
