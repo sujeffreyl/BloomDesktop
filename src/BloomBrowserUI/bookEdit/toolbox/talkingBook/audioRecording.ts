@@ -1118,10 +1118,6 @@ export default class AudioRecording {
 
         this.makeAudioSentenceElements(unionedElementsToProcess);
 
-        // For displaying the qtip, restrict the set of divs to the ones that have audio sentences.
-        unionedElementsToProcess = unionedElementsToProcess.has(
-            kAudioSentenceClassSelector
-        );
         const thisClass = this;
 
         //thisClass.setStatus('record', Status.Expected);
