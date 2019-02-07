@@ -1074,7 +1074,7 @@ export default class AudioRecording {
         allowUpdateOfCurrent: boolean = true
     ): void {
         // Basic outline:
-        // * This function gets called when the user types something, and sometimes upon initialization of the talking book tool too (if there is text)
+        // * This function gets called when the user types something, and upon initialization of the talking book tool too if there is a non-empty recordable text box
         // * First, see if we should update the Current Highlight to the element with the active focus instead.
         // * Then, ensure all the state is initialized.
         // * Now that we're finally ready, change the HTML markup with the audio-sentence classes, ids, etc.
