@@ -1034,18 +1034,27 @@ export default class AudioRecording {
         ) {
             // FYI: The active element is the one that has "focus."  It may be a lot of other elements on the page, so definitely make sure to check that it is valid first (e.g. check IsRecordableDiv())
             // If the cursor is within a span within a div, it is the div that is the activeElement.  This is both a good thing (when we want to know what div the user is in) and a bad thing (in by sentence mode, we'd really prefer to know what span they're in but this is not trivial)
-            const currentDiv = pageFrame.contentDocument.activeElement;
+            const activeDiv = pageFrame.contentDocument.activeElement;
 
-            const pageBody = this.getPageDocBody();
-            if (!pageBody) return; // Just give up, not much we can do from here.
+            // Check if the existing current highlight is already inside the active element. If so, we don't want to move the highlight backwards.
+            const existingCurrElement = this.getCurrentElement();
+            if (!activeDiv.contains(existingCurrElement)) {
+                const pageBody = this.getPageDocBody();
+                if (!pageBody) return; // Just give up, not much we can do from here.
 
-            const audioCurrentList = pageBody.getElementsByClassName(
-                kAudioCurrent
-            );
-            this.setCurrentAudioElement($(audioCurrentList), $(currentDiv));
+                const audioCurrentList = pageBody.getElementsByClassName(
+                    kAudioCurrent
+                );
+                this.setCurrentAudioElement($(audioCurrentList), $(activeDiv));
 
-            // Since we changed to a different element, we need to update state
-            this.initializeForMarkupAsync(doneCallback);
+                // Since we changed to a different element, we need to update state
+                this.initializeForMarkupAsync(doneCallback);
+            } else {
+                // No need to update anything, just call the doneCallback.
+                if (doneCallback) {
+                    doneCallback();
+                }
+            }
         } else {
             // No need to update anything, just call the doneCallback.
             if (doneCallback) {
@@ -1095,6 +1104,12 @@ export default class AudioRecording {
             return;
         }
 
+        let currentElement = this.getCurrentElement(); // not currentDiv(). If we are in Span mode, we want to operate on the span, not the parent div.
+        let currentElementId: string | null = null;
+        if (currentElement) {
+            currentElementId = currentElement.id;
+        }
+
         if (!this.isFullyInitialized()) {
             this.initializeForMarkupAsync(() => {
                 this.updateMarkupAndControlsToCurrentText();
@@ -1124,9 +1139,17 @@ export default class AudioRecording {
         //thisClass.setStatus('record', Status.Expected);
         thisClass.levelCanvas = $("#audio-meter").get()[0];
 
+        // TODO: This fixes the bug. Now test that it didn't break anything else. Then make it pretty.
+        if (!currentElementId) {
+            return;
+        }
+        currentElement = this.getPageFrame()!.contentDocument!.getElementById(
+            currentElementId
+        );
+
         // This synchronous call probably makes the flashing problem even more likely compared to delaying it but I think it is helpful if the state is being rapidly modified.
         this.setCurrentAudioElementToFirstAudioSentenceWithinElement(
-            currentDiv,
+            currentElement!,
             false
         );
 
@@ -1152,7 +1175,7 @@ export default class AudioRecording {
             // Keep setting the current highlight for an additional roughly 1 second
             setTimeout(() => {
                 this.setCurrentAudioElementToFirstAudioSentenceWithinElement(
-                    currentDiv,
+                    currentElement!,
                     true
                 );
             }, delayInMilliseconds);
