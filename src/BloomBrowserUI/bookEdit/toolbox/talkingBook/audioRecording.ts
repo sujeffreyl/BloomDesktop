@@ -58,11 +58,13 @@ const kBloomEditableTextBoxSelector = "div.bloom-editable";
 const kRecordingModeControl: string = "audio-recordingModeControl";
 const kRecordingModeClickHandler: string =
     "audio-recordingModeControl-clickHandler";
+
 const kAutoSegmentWrapperId = "audio-autoSegmentWrapper";
 const kAutoSegmentButtonId = "audio-autoSegment";
 const kAutoSegmentButtonIdSelector = "#" + kAutoSegmentButtonId;
 const kAutoSegmentStatusClass = "autoSegmentStatus";
 const kAutoSegmentEnabledClass = "autoSegmentEnabled";
+const kAutoSegmentUndoButton = "audio-autoSegmentUndo";
 
 // Terminology //
 // CurrentTextBox: The text box (div) which is either currently highlighted itself or contains the currently highlighted element. CurrentTextBox never points to a audio-sentence span.
@@ -141,6 +143,9 @@ export default class AudioRecording {
         $(kAutoSegmentButtonIdSelector)
             .off()
             .click(e => this.autoSegment());
+        $(`#${kAutoSegmentUndoButton}`)
+            .off()
+            .click(e => this.autoSegmentUndo());
 
         $("#player").off();
         // The following speeds playback, ensures we get the durationchange event.
@@ -2299,6 +2304,104 @@ export default class AudioRecording {
             // TODO: Localize
             // If there is a more detailed error from C#, it should be reported via ErrorReport.ReportNonFatal[...]
             toastr.error("AutoSegment did not succeed.");
+        }
+    }
+
+    private autoSegmentUndo(): void {
+        // Ensure we are in Sentence Mode.
+        if (this.audioRecordingMode != AudioRecordingMode.Sentence) {
+            console.assert(
+                false,
+                `Auto Segment Undo() called while in mode ${
+                    this.audioRecordingMode
+                }`
+            );
+            toastr.error("Auto Segment Undo() called while in wrong mode."); // TODO: Delete me
+            return;
+        }
+
+        const currentTextBox = this.getCurrentTextBox();
+        if (!currentTextBox) {
+            // At this point, not going to be able to get the ID of the div so we can't figure out how to get the filename...
+            // So just give up.
+            toastr.error("Auto Segment Undo did not succeed.");
+            return;
+        }
+
+        const currentTextBoxAudioSentences = this.getAudioSentencesInCurrentTextBox();
+        if (!currentTextBoxAudioSentences) {
+            // No work necessary for us to do.
+            toastr.info("No work to do."); // TODO: Remove me
+            return;
+        }
+
+        const segmentIds: string[] = [];
+        currentTextBoxAudioSentences.forEach(element => {
+            segmentIds.push(element.id);
+        });
+
+        const inputParameters = {
+            segmentIds: segmentIds,
+            outputFilename: currentTextBox.id
+        };
+
+        // TODO: Would probably make sense to update the status element.
+
+        BloomApi.postJson(
+            "audioSegmentation/combineSegments",
+            JSON.stringify(inputParameters),
+            result => {
+                if (result && result.data) {
+                    toastr.info("combineSegments finished successfully.");
+
+                    this.processAutoSegmentUndoResponse(result, () => {});
+                } else {
+                    toastr.error("Auto Segment Undo failed.");
+                }
+            }
+        );
+    }
+
+    private processAutoSegmentUndoResponse(
+        result: AxiosResponse<any>,
+        //statusElement: HTMLElement,
+        doneCallback = () => {}
+    ): void {
+        // TODO: Would probably make sense to update the status element.
+
+        const autoSegmentButton: HTMLButtonElement | null = <
+            HTMLButtonElement | null
+        >document.getElementById(kAutoSegmentButtonId);
+        if (autoSegmentButton) {
+            autoSegmentButton.disabled = false;
+        }
+
+        const isSuccess = result && result.data == true;
+
+        if (isSuccess) {
+            // Now that we know the Auto Segmentation succeeded, finally convert into by-sentence mode.
+
+            const forceOverwrite: boolean = true;
+            this.updateRecordingMode(forceOverwrite); // Needs to call changeStateAndSetExpected() at some point.
+        } else {
+            this.changeStateAndSetExpected("record");
+
+            // TODO: change to red. And change back to yellow
+            theOneLocalizationManager
+                .asyncGetText(
+                    "EditTab.Toolbox.TalkingBookTool.AutoSegmentStatusError",
+                    "Undo... Error",
+                    ""
+                )
+                .done(localizedNotification => {
+                    //statusElement.innerText = localizedNotification;
+
+                    doneCallback();
+                });
+
+            // TODO: Localize
+            // If there is a more detailed error from C#, it should be reported via ErrorReport.ReportNonFatal[...]
+            toastr.error("AutoSegment Undo did not succeed.");
         }
     }
 }

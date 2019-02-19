@@ -26,14 +26,20 @@ namespace Bloom.web.controllers
 		public string id;
 	}
 
+	internal class CombineSegmentsRequest
+	{
+		public string[] segmentIds;
+		public string outputFilename;
+	}
+
 
 	// API Handler to process audio segmentation (forced alignment)
 	public class AudioSegmentationApi
 	{
 		public const string kApiUrlPart = "audioSegmentation/";
-		private const string kWorkingDirectory = "%HOMEDRIVE%\\%HOMEPATH%";	// TODO: Linux compatability
+		private const string kWorkingDirectory = "%HOMEDRIVE%\\%HOMEPATH%"; // TODO: Linux compatability
 		private const string kTimingsOutputFormat = "tsv";
-		private const float maxAudioHeadDurationSec = 0;	// maximum potentially allowable length in seconds of the non-useful "head" part of the audio which Aeneas will attempt to identify (if it exists) and then exclude from the timings
+		private const float maxAudioHeadDurationSec = 0;    // maximum potentially allowable length in seconds of the non-useful "head" part of the audio which Aeneas will attempt to identify (if it exists) and then exclude from the timings
 
 		BookSelection _bookSelection;
 		public AudioSegmentationApi(BookSelection bookSelection)
@@ -43,7 +49,8 @@ namespace Bloom.web.controllers
 
 		public void RegisterWithApiHandler(BloomApiHandler apiHandler)
 		{
-			apiHandler.RegisterEndpointHandler(kApiUrlPart + "autoSegmentAudio", AutoSegment, handleOnUiThread: false, requiresSync : false);
+			apiHandler.RegisterEndpointHandler(kApiUrlPart + "autoSegmentAudio", AutoSegment, handleOnUiThread: false, requiresSync: true);
+			apiHandler.RegisterEndpointHandler(kApiUrlPart + "combineSegments", CombineSegments, handleOnUiThread: false, requiresSync: true);
 			apiHandler.RegisterEndpointHandler(kApiUrlPart + "checkAutoSegmentDependencies", CheckAutoSegmentDependenciesMet, handleOnUiThread: false, requiresSync: false);
 		}
 
@@ -96,7 +103,7 @@ namespace Bloom.web.controllers
 			}
 			else if (DoesCommandCauseError("python -m aeneas.tools.execute_task", kWorkingDirectory, 2))    // Expected to list usage. Error Code 0 = Success, 1 = Error, 2 = Help shown.
 			{
-				message = "Aeneas for Python"; 
+				message = "Aeneas for Python";
 				return false;
 			}
 
@@ -114,6 +121,9 @@ namespace Bloom.web.controllers
 		// Returns true if the command returned with an error
 		protected bool DoesCommandCauseError(string commandString, string workingDirectory, out string standardOutput, out string standardError, params int[] errorCodesToIgnore)
 		{
+			standardOutput = ""; // TODO: REMOVE ME
+			standardError = "";
+
 			if (!String.IsNullOrEmpty(workingDirectory))
 			{
 				commandString = $"cd \"{workingDirectory}\" && {commandString}";
@@ -124,7 +134,7 @@ namespace Bloom.web.controllers
 			{
 				StartInfo = new ProcessStartInfo()
 				{
-					FileName = "CMD",	// TODO: Linux compatability
+					FileName = "CMD",   // TODO: Linux compatability
 					Arguments = arguments,
 					UseShellExecute = false,
 					CreateNoWindow = true,
@@ -134,16 +144,29 @@ namespace Bloom.web.controllers
 			};
 
 			process.Start();
-			process.WaitForExit();
+			bool didExitNormally = process.WaitForExit(10000);
 
-			standardOutput = process.StandardOutput.ReadToEnd();
-			standardError = process.StandardError.ReadToEnd();
+			if (didExitNormally)
+			{
+				standardOutput = process.StandardOutput.ReadToEnd();
+				standardError = process.StandardError.ReadToEnd();
+			}
+			else
+			{
+				// It'd really be best to avoid getting into these situations. I think it only kills the CMD process, but other resources may still be locked by the hanging command.
+				Debug.Assert(false, "Process terminated due to taking too long. Please avoid, resources might still be locked.");
+				process.Kill();
+				standardOutput = standardError = "Process terminated due to taking too long.";
+				return true;
+			}
+
+			
 
 			Debug.Assert(process.ExitCode != -1073741510); // aka 0xc000013a which means that the command prompt exited, and we can't determine what the exit code of the last command was :(
 
 			if (process.ExitCode == 0)
 			{
-				return false;	// No error
+				return false;   // No error
 			}
 			else if (errorCodesToIgnore != null && errorCodesToIgnore.Contains(process.ExitCode))
 			{
@@ -181,7 +204,7 @@ namespace Bloom.web.controllers
 			string inputAudioFilename = GetFileNameToSegment(directoryName, requestParameters.audioFilenameBase);
 			if (String.IsNullOrEmpty(inputAudioFilename))
 			{
-				ErrorReport.ReportNonFatalMessageWithStackTrace("No audio file found. Please record audio first.");
+				ErrorReport.ReportNonFatalMessageWithStackTrace($"No audio file found (filenameBase=\"{requestParameters.audioFilenameBase}\"). Please record audio first.");
 				request.ReplyWithBoolean(false);
 				return;
 			}
@@ -221,7 +244,7 @@ namespace Bloom.web.controllers
 				return;
 			}
 
-			string textFragmentsFilename =  $"{directoryName}/{requestParameters.audioFilenameBase}_fragments.txt";
+			string textFragmentsFilename = $"{directoryName}/{requestParameters.audioFilenameBase}_fragments.txt";
 			string audioTimingsFilename = $"{directoryName}/{requestParameters.audioFilenameBase}_timings.{kTimingsOutputFormat}";
 
 			audioTextFragments = audioTextFragments.Where(obj => !String.IsNullOrWhiteSpace(obj.fragmentText)); // Remove entries containing only whitespace
@@ -269,11 +292,10 @@ namespace Bloom.web.controllers
 		/// <returns>The file path (including directory) of a valid file if it exists, or null otherwise</returns>
 		private string GetFileNameToSegment(string directoryName, string fileNameBase)
 		{
-			var extensions = new string[] { "mp3", "wav" };
-
-			foreach (var extension in extensions)
+			// FYI: NarrationAudioExtensions already includes the "." in the extension.
+			foreach (var extension in Bloom.Publish.AudioProcessor.NarrationAudioExtensions.Reverse())	// TODO: Less hacky, please.
 			{
-				string filePath = $"{directoryName}\\{fileNameBase}.{extension}";
+				string filePath = $"{directoryName}\\{fileNameBase}{extension}";
 
 				if (File.Exists(filePath))
 				{
@@ -306,7 +328,7 @@ namespace Bloom.web.controllers
 
 			var processStartInfo = new ProcessStartInfo()
 			{
-				FileName = "CMD.EXE",	// TODO: Linux compatability
+				FileName = "CMD.EXE",   // TODO: Linux compatability
 
 				// DEBUG NOTE: you can use "/K" instead of "/C" to keep the window open (if needed for debugging)
 				Arguments = $"/C {commandString}"
@@ -333,7 +355,7 @@ namespace Bloom.web.controllers
 			{
 				timingStartEndRangeList = ParseTimingFileTSV(segmentationResults);
 			}
-			
+
 			return timingStartEndRangeList;
 		}
 
@@ -356,7 +378,7 @@ namespace Bloom.web.controllers
 				{
 					if (!timings.Any())
 					{
-						timingStart = "0.000";	// Note: format generated by Aeneas seems independent of your Date/Time/Number Format settings. 
+						timingStart = "0.000";  // Note: format generated by Aeneas seems independent of your Date/Time/Number Format settings. 
 					}
 					else
 					{
@@ -433,9 +455,9 @@ namespace Bloom.web.controllers
 		private void ExtractAudioSegments(IList<string> idList, IList<Tuple<string, string>> timingStartEndRangeList, string directoryName, string inputAudioFilename)
 		{
 			Debug.Assert(idList.Count == timingStartEndRangeList.Count, $"Number of text fragments ({idList.Count}) does not match number of extracted timings ({timingStartEndRangeList.Count}). The parsed timing ranges might be completely incorrect. The last parsed timing is: ({timingStartEndRangeList.Last()?.Item1 ?? "null"}, {timingStartEndRangeList.Last()?.Item2 ?? "null"}).");
-			int size = Math.Min(timingStartEndRangeList.Count, idList.Count);	// Note: it could differ if there is some discrepancy in line endings in the fragments file. This doesn't seem like it should happen but occasionally I see it.
+			int size = Math.Min(timingStartEndRangeList.Count, idList.Count);   // Note: it could differ if there is some discrepancy in line endings in the fragments file. This doesn't seem like it should happen but occasionally I see it.
 
-			string extension = Path.GetExtension(inputAudioFilename);	// Will include the "." e.g. ".mp3"
+			string extension = Path.GetExtension(inputAudioFilename);   // Will include the "." e.g. ".mp3"
 			if (string.IsNullOrWhiteSpace(extension))
 			{
 				extension = ".mp3";
@@ -470,7 +492,7 @@ namespace Bloom.web.controllers
 		private Task<int> ExtractAudioSegmentAsync(string inputAudioFilename, string timingStartString, string timingEndString, string outputSplitFilename)
 		{
 			string commandString = $"cd {kWorkingDirectory} && ffmpeg -i \"{inputAudioFilename}\" -acodec copy -ss {timingStartString} -to {timingEndString} \"{outputSplitFilename}\"";
-			var startInfo = new ProcessStartInfo(fileName: "CMD", arguments: $"/C {commandString}");	// TODO: Linux compatability
+			var startInfo = new ProcessStartInfo(fileName: "CMD", arguments: $"/C {commandString}");    // TODO: Linux compatability
 
 			return RunProcessAsync(startInfo);
 		}
@@ -495,6 +517,86 @@ namespace Bloom.web.controllers
 			process.Start();
 
 			return tcs.Task;
+		}
+
+		/// <summary>
+		/// API Handler to combine multiple audio sentences into a single one
+		///
+		/// Replies with true if combined successfully, or false if there was an error. In addition, a NonFatal message/exception may be reported with the error
+		/// </summary>
+		/// <param name="request"></param>
+		public void CombineSegments(ApiRequest request)
+		{
+			// Parse the JSON containing the request parameters
+			string json = request.RequiredPostJson();
+			CombineSegmentsRequest requestParameters = JsonConvert.DeserializeObject<CombineSegmentsRequest>(json);
+
+			if (requestParameters.segmentIds != null)
+			{
+				string directoryName = _bookSelection.CurrentSelection.FolderPath + "\\audio";
+				char separator = Path.DirectorySeparatorChar;
+
+				// Determine the exact filename (e.g. check the extension) to use.
+				// (Also double-checks that we actually do have a file existing for that segment. If not, excludes the segment.
+				var filenamesToConcatenate = new List<string>();
+				string outputExtension = ".mp3";
+				foreach (var segmentId in requestParameters.segmentIds)
+				{
+					// TODO: Do we care whether we prefer .wav or .mp3?   (.wav will be preferred in this new implementation)
+					foreach (var extension in Bloom.Publish.AudioProcessor.NarrationAudioExtensions.Reverse())	// TODO: Less hacky
+					{
+						// Note: extension will (or at least should) begin with the "." character
+						string fullPath = $"{directoryName}{separator}{segmentId}{extension}";
+						if (File.Exists(fullPath))
+						{
+							filenamesToConcatenate.Add($"file '{fullPath}'");
+							outputExtension = extension;
+							break;
+						}
+					}
+				}
+
+				if (!filenamesToConcatenate.Any())
+				{
+					Debug.Assert(false, "Why is filenamesToConcatenate() empty???");
+					request.ReplyWithBoolean(false);
+					return;
+				}
+				// FFMpeg concat can only accept these filenames via a text file, so write them to disk.
+				string concatInputFullPath = Path.GetTempFileName();
+				File.WriteAllLines(concatInputFullPath, filenamesToConcatenate);
+
+				string outputFullPath = $"{directoryName}{separator}{requestParameters.outputFilename}{outputExtension}";
+
+				// TODO: What is this -safe 0 thing about? https://stackoverflow.com/questions/7333232/how-to-concatenate-two-mp4-files-using-ffmpeg
+				int safeFileSetting = 0;    // Windows filenames use "\" which ffmpeg doesn't like.
+				if (SIL.PlatformUtilities.Platform.IsLinux)
+				{
+					safeFileSetting = 1;
+				}
+
+				// -safe: Whether to complain about unsafe filenames e.g. those containing "\" instead of "/"
+				// -f: Force input/output format
+				// -i: Input files
+				// -c: Codec
+				// -y: Overwrite existing files
+				string commandString = $"ffmpeg -safe {safeFileSetting} -f concat -i \"{concatInputFullPath}\" -c copy \"{outputFullPath}\" -y";
+
+				// TODO: Should we set a timeout?
+				string stdout, stderr;
+				if (DoesCommandCauseError(commandString, kWorkingDirectory, out stdout, out stderr))
+				{
+					ErrorReport.ReportNonFatalMessageWithStackTrace($"CombineSegments failed while executing the following command: {commandString}. Standard Output: {stdout}.\nStandardError: {stderr}.");
+					request.ReplyWithBoolean(false);
+					return;
+				}
+			}
+
+			// TODO: Think about what happens if one of the sentences is missing audio.
+			// Maybe the client side code should provide some warning about it.
+
+			// TODO: Return false if there are exceptions or something like that.
+			request.ReplyWithBoolean(true);
 		}
 	}
 }

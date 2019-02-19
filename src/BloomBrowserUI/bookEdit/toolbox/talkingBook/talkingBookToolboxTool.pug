@@ -44,5 +44,10 @@ html
 					button(id='audio-autoSegmentSettings')
 					br
 					div.autoSegmentStatus Segmenting...
+
+				// TODO: Make the UI look pretty.
+				div(id='audio-autoSegmentUndoWrapper')
+					button(id='audio-autoSegmentUndo' data-i18n='EditTab.Toolbox.TalkingBookTool.AutoSegmentUndo') Undo Auto Segment
+
 				div.audio-about(data-i18n='EditTab.Toolbox.TalkingBookTool.ToolPurpose') Make an e-book that can play audio recordings while highlighting text.
 				a(href='/bloom/api/help/Tasks/Edit_tasks/Record_Audio/Talking_Book_Tool_overview.htm', data-i18n='Common.Help') Help
