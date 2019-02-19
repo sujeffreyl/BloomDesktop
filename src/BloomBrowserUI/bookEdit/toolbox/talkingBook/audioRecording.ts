@@ -34,6 +34,7 @@ import { BloomApi } from "../../../utils/bloomApi";
 import * as toastr from "toastr";
 import WebSocketManager from "../../../utils/WebSocketManager";
 import { ToolBox } from "../toolbox";
+import AutoSegmentSettingsDialog from "../talkingBook/autoSegmentSettingsDialog";
 
 enum Status {
     Disabled, // Can't use button now (e.g., Play when there is no recording)
@@ -141,6 +142,11 @@ export default class AudioRecording {
         $(kAutoSegmentButtonIdSelector)
             .off()
             .click(e => this.autoSegment());
+        $("#audio-autoSegmentSettings")
+            .off()
+            .click(e => {
+                AutoSegmentSettingsDialog.show();
+            });
 
         $("#player").off();
         // The following speeds playback, ensures we get the durationchange event.
