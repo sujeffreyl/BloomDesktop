@@ -277,6 +277,7 @@ export default class AudioRecording {
             } else if (this.audioRecordingMode == AudioRecordingMode.TextBox) {
                 this.recordingModeInput.checked = false;
             }
+            this.enableRecordingModeControl();
 
             this.setupForAutoSegment();
         }
@@ -907,6 +908,7 @@ export default class AudioRecording {
     }
 
     private enableRecordingModeControl() {
+        toastr.clear();
         if (this.recordingModeInput.disabled) {
             this.recordingModeInput.disabled = false;
 
@@ -926,13 +928,15 @@ export default class AudioRecording {
         this.recordingModeInput.disabled = true;
         const handlerJquery = $("#" + kRecordingModeClickHandler);
         handlerJquery.off();
+        toastr.clear();
         if (useClearRecordingsNotification) {
             // Note: In the future, if the click handler is no longer used, just assign the same onClick function() to the checkbox itself.
             handlerJquery.click(e => this.notifyRecordingModeControlDisabled());
         } else {
-            handlerJquery.click(e =>
-                this.notifyRecordingModeControlDisabledXMatter()
-            );
+            handlerJquery.click(e => {
+                if (ToolBox.isXmatterPage)
+                    this.notifyRecordingModeControlDisabledXMatter();
+            });
         }
     }
 
@@ -2245,9 +2249,10 @@ export default class AudioRecording {
     }
 
     private disableInteraction(): void {
-        // We call this method in two cases (so far):
+        // We call this method in three cases (so far):
         // 1- When calling changeStateAndSetExpected() with expectedVerb = ""
         // 2- While doing auto segmenting
+        // 3- An unrecoverable error has occurred
         this.setStatus("record", Status.Disabled);
         this.setStatus("play", Status.Disabled);
         this.setStatus("next", Status.Disabled);
