@@ -277,7 +277,6 @@ export default class AudioRecording {
             } else if (this.audioRecordingMode == AudioRecordingMode.TextBox) {
                 this.recordingModeInput.checked = false;
             }
-            this.enableRecordingModeControl();
 
             this.setupForAutoSegment();
         }
@@ -462,6 +461,10 @@ export default class AudioRecording {
         } else {
             return false;
         }
+    }
+
+    private containsAnyAudioElements(): boolean {
+        return this.getAudioElements().length > 0;
     }
 
     private getAudioElements(): JQuery {
@@ -1106,7 +1109,7 @@ export default class AudioRecording {
     public newPageReady() {
         // FYI, it is possible for newPageReady to be called without updateMarkup() being called
         // (e.g. when opening the toolbox with an empty text box).
-        this.initializeForMarkupAsync();
+        this.initializeForMarkupAsync(() => this.changeStateAndSetExpected(""));
     }
 
     // Should be called when whatever tool uses this is about to be hidden (e.g., changing tools or closing toolbox)
@@ -1907,9 +1910,9 @@ export default class AudioRecording {
     ) {
         console.log("changeState(" + expectedVerb + ")");
 
-        // We call this method in (at least) two places with expectedVerb = "" when we have found
-        // that the current page has no divs with recordable content, so we want to disable
-        // the audio recording controls.
+        // Call with "" verb if there's nothing specific to highlight, just need to check if these controls should be disabled.
+        // (e.g. when we have found that the current page has no divs with recording content, and we may possible want to disable
+        // the audio recording controls.)
         if (expectedVerb == "") {
             this.disableInteraction();
             // Whether we disable the Recording Mode control depends on whether we COULD have text
@@ -1928,28 +1931,31 @@ export default class AudioRecording {
         //       (right now) and when we actually determine the correct state (after a callback).
 
         if (this.getPageDocBodyJQuery().find(".ui-audioCurrent").length === 0) {
-            // We have reached an unexpected state :(
-            // (It can potentially happen if changes applied to the markup get wiped out and
-            // overwritten e.g. by CkEditor Onload())
-            if (numRetriesRemaining > 0) {
-                // It's best not to leave everything disabled.
-                // The user will be kinda stuck without any navigation.
-                // Attempt to set the markup to the first element
-                // Practically speaking, it's most likely to get into this erroneous state when
-                // loading which will be on the first element. Even if the first element is
-                // "wrong"... the alternative is it points to nothing and you are stuck.
-                // IMO pointing to the first element is less wrong than disabling the whole toolbox.
-                this.setCurrentAudioElementToFirstAudioElement();
-                this.changeStateAndSetExpected(
-                    expectedVerb,
-                    numRetriesRemaining - 1
-                );
-                return;
-            } else {
-                // We have reached an error state and attempts to self-correct it haven't
-                // succeeded either. :(
-                this.disableInteraction();
-                return;
+            // Finding no audioCurrent is only unexpected if there are non-zero number of audio elements
+            if (this.containsAnyAudioElements()) {
+                // We have reached an unexpected state :(
+                // (It can potentially happen if changes applied to the markup get wiped out and
+                // overwritten e.g. by CkEditor Onload())
+                if (numRetriesRemaining > 0) {
+                    // It's best not to leave everything disabled.
+                    // The user will be kinda stuck without any navigation.
+                    // Attempt to set the markup to the first element
+                    // Practically speaking, it's most likely to get into this erroneous state when
+                    // loading which will be on the first element. Even if the first element is
+                    // "wrong"... the alternative is it points to nothing and you are stuck.
+                    // IMO pointing to the first element is less wrong than disabling the whole toolbox.
+                    this.setCurrentAudioElementToFirstAudioElement();
+                    this.changeStateAndSetExpected(
+                        expectedVerb,
+                        numRetriesRemaining - 1
+                    );
+                    return;
+                } else {
+                    // We have reached an error state and attempts to self-correct it haven't
+                    // succeeded either. :(
+                    this.disableInteraction();
+                    return;
+                }
             }
         }
 
@@ -2053,7 +2059,10 @@ export default class AudioRecording {
     private enableRecordingModeIfTextBoxes() {
         // The 'false' parameter here checks for visible text divs, but doesn't check
         // for actual text in them. We already know there aren't any WITH text.
-        if (this.getRecordableDivs(false).length > 0) {
+        if (
+            !ToolBox.isXmatterPage() &&
+            this.getRecordableDivs(false).length > 0
+        ) {
             // Enable the control, although we don't currently have any text on this page, because
             // we could add text at some point.
             this.enableRecordingModeControl();
