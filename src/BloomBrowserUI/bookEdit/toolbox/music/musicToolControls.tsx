@@ -115,6 +115,7 @@ export class MusicToolControls extends React.Component<{}, IMusicState> {
                 <Div
                     className="musicHelp"
                     l10nKey="EditTab.Toolbox.Music.Overview"
+                    l10nLang="zh-CN"
                 >
                     You can set up background music to play with this page when
                     the book is viewed in the Bloom Reader app.

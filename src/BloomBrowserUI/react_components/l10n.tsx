@@ -40,6 +40,7 @@ export interface ILocalizationProps extends IUILanguageAwareProps {
     alreadyLocalized?: boolean; // true if translated by C#-land
     l10nParam0?: string;
     l10nParam1?: string;
+    l10nLang?: string;
 }
 
 export interface ILocalizationState {
@@ -224,8 +225,8 @@ export class LocalizableElement<
             (controlIsEnabled
                 ? this.state.tipEnabledTranslation
                 : this.state.tipDisabledTranslation
-                ? this.state.tipDisabledTranslation
-                : this.state.tipEnabledTranslation) || ""
+                    ? this.state.tipDisabledTranslation
+                    : this.state.tipEnabledTranslation) || ""
         );
     }
 
