@@ -365,7 +365,7 @@ namespace Bloom.web.controllers
 			var audioFile = Path.GetFileName(inputAudioFilename);
 			var fragmentsFile = Path.GetFileName(inputTextFragmentsFilename);
 			var outputFile = Path.GetFileName(outputTimingsFilename);
-			string commandString = $"python -m aeneas.tools.execute_task \"{audioFile}\" \"{fragmentsFile}\" \"task_language={aeneasLang}|is_text_type=plain|os_task_file_format={kTimingsOutputFormat}{audioHeadParams}{boundaryAdjustmentParams}\" \"{outputFile}\" --runtime-configuration=\"tts_voice_code={ttsEngineLang}\"";
+			string commandString = $"python -m aeneas.tools.execute_task \"{audioFile}\" \"{fragmentsFile}\" \"task_language={aeneasLang}|is_text_type=plain|os_task_file_format={kTimingsOutputFormat}{audioHeadParams}{boundaryAdjustmentParams}\" \"{outputFile}\" --runtime-configuration=\"tts_voice_code={ttsEngineLang}\" --output-html";
 
 			var processStartInfo = new ProcessStartInfo()
 			{
