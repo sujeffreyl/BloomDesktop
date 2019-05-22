@@ -40,13 +40,8 @@ namespace Bloom.MiscUI
 		protected State _state;
 		private string _emailableReportFilePath;
 		private readonly string YouTrackUrl;
-		protected string _youTrackProjectKey = "BL";
-
-		private readonly Connection _youTrackConnection = new Connection(UrlLookup.LookupUrl(UrlType.IssueTrackingSystemBackend, false, true), 0 /* BL-5500 don't specify port */, true, "youtrack");
-		private IssueManagement _issueManagement;
 
 		private string _youTrackIssueId = "unknown";
-		private dynamic _youTrackIssue;
 
 		public ProblemReporterDialog()
 			: this(null)
@@ -288,11 +283,6 @@ namespace Bloom.MiscUI
 			}
 		}
 
-		private void AddAttachment(string file)
-		{
-			_issueManagement.AttachFileToIssue(_youTrackIssueId, file);
-		}
-
 		/// <summary>
 		/// Using YouTrackSharp here. We can't submit
 		/// the report as if it were from this person, even if they have an account (well, not without
@@ -305,14 +295,11 @@ namespace Bloom.MiscUI
 			{
 				ChangeState(State.Submitting);
 
-				_youTrackConnection.Authenticate("auto_report_creator", "thisIsInOpenSourceCode");
-				_issueManagement = new IssueManagement(_youTrackConnection);
-				_youTrackIssue = new Issue();
-				_youTrackIssue.ProjectShortName = _youTrackProjectKey;
-				_youTrackIssue.Type = "Awaiting Classification";
-				_youTrackIssue.Summary = string.Format(Summary,_name.Text);
-				_youTrackIssue.Description = GetFullDescriptionContents(false);
-				_youTrackIssueId = _issueManagement.CreateIssue(_youTrackIssue);
+				var youTrack = new YouTrackIssueConnector(projectKey: "BL");
+
+				string summary = string.Format(Summary, _name.Text);
+				string description = GetFullDescriptionContents(false);
+				_youTrackIssueId = youTrack.SubmitToYouTrack(summary, description);
 
 				// this could all be done in one go, but I'm doing it in stages so as to increase the
 				// chance of success in bad internet situations
@@ -321,7 +308,7 @@ namespace Bloom.MiscUI
 					using (var file = TempFile.WithFilenameInTempFolder("screenshot.png"))
 					{
 						RobustImageIO.SaveImage(_screenshot, file.Path, ImageFormat.Png);
-						AddAttachment(file.Path);
+						youTrack.AddAttachment(file.Path);
 					}
 				}
 
@@ -331,13 +318,12 @@ namespace Bloom.MiscUI
 					{
 						using (var logFile = GetLogFile())
 						{
-							AddAttachment(logFile.Path);
+							youTrack.AddAttachment(logFile.Path);
 						}
 					}
 					catch (Exception e)
 					{
-						_youTrackIssue.Description += System.Environment.NewLine + "***Got exception trying to attach log file: " + e.Message;
-						_issueManagement.UpdateIssue(_youTrackIssueId, _youTrackIssue.Summary, _youTrackIssue.Description);
+						youTrack.UpdateIssue("***Got exception trying to attach log file: " + e.Message);
 					}
 				}
 
@@ -359,9 +345,10 @@ namespace Bloom.MiscUI
 						}
 						catch (Exception error)
 						{
-							_youTrackIssue.Description += System.Environment.NewLine + "***Error as ProblemReporterDialog attempted to zip up the book: " + error.Message;
-							_issueManagement.UpdateIssue(_youTrackIssueId, _youTrackIssue.Summary, _youTrackIssue.Description);
-							Logger.WriteEvent("*** Error as ProblemReporterDialog attempted to zip up the book. " + error.Message);
+							string zipErrorMessage = "*** Error as ProblemReporterDialog attempted to zip up the book. " + error.Message;
+							youTrack.UpdateIssue(zipErrorMessage);
+							Logger.WriteEvent(zipErrorMessage);
+
 							// if an error happens in the zipper, the zip file stays locked, so we just leak it
 							bookZip.Detach();
 							_shortErrorHtml += " Error Zipping Book ";
@@ -372,14 +359,12 @@ namespace Bloom.MiscUI
 						{
 							string url = ProblemBookUploader.UploadBook(BloomS3Client.ProblemBookUploadsBucketName, bookZip.Path,
 								progress);
-							_youTrackIssue.Description += System.Environment.NewLine + url;
-							_issueManagement.UpdateIssue(_youTrackIssueId, _youTrackIssue.Summary, _youTrackIssue.Description);
+							youTrack.UpdateIssue(System.Environment.NewLine + url);
 						}
 						catch (Exception error)
 						{
 							Logger.WriteError(progress.LastError, error);
-							_youTrackIssue.Description += System.Environment.NewLine + "***Got exception trying upload book: " + error.Message;
-							_issueManagement.UpdateIssue(_youTrackIssueId, _youTrackIssue.Summary, _youTrackIssue.Description);
+							youTrack.UpdateIssue(System.Environment.NewLine + "***Got exception trying upload book: " + error.Message);
 							_shortErrorHtml += " Uploading Book Failed ";
 						}
 					}
