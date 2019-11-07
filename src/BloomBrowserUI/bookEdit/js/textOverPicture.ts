@@ -275,22 +275,46 @@ export class TextOverPictureManager {
                     const deltaX = ev.pageX - positionInfo.left;
                     const deltaY = ev.pageY - positionInfo.top;
                     bubbleGrabOffset = { x: deltaX, y: deltaY };
+
+                    container.classList.add("grabbing");
                 }
             };
             container.onmousemove = (ev: MouseEvent) => {
                 if (draggedBubble) {
+                    if (
+                        ev.offsetX < 0 ||
+                        ev.offsetY < 0 ||
+                        ev.offsetX > container.offsetWidth ||
+                        ev.offsetY > container.offsetHeight
+                    ) {
+                        draggedBubble = undefined;
+                        container.classList.remove("grabbing");
+                        return;
+                    }
+
                     this.calculateAndFixInitialLocation(
                         $(draggedBubble.content),
                         $(container),
                         ev.pageX - bubbleGrabOffset.x, // These coordinates need to be relative to the document
                         ev.pageY - bubbleGrabOffset.y
                     );
+                } else {
+                    // Not currently dragging
+                    if (
+                        Comical.getBubbleHit(container, ev.offsetX, ev.offsetY)
+                    ) {
+                        // But could be dragging a bubble, so make the mouse indicate that
+                        container.classList.add("grabbable");
+                    } else {
+                        container.classList.remove("grabbable");
+                    }
                 }
             };
             container.onmouseup = (ev: MouseEvent) => {
                 // ENHANCE: If you release the mouse outside of the container, it is not registered as a mouseup here.
                 //          The bubble will continue to be dragged inside the container until you click and release.
                 draggedBubble = undefined;
+                container.classList.remove("grabbing");
             };
             // ENHANCE: Maybe it'd be nice to have a mouseover effect that makes the mouse pointer look draggable if you move over a draggable element
             // ENHANCE: Have ctrl+click go through the text box (currently text box intercepts the click, which is desirable in many cases)
