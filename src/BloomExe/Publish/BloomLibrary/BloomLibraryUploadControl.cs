@@ -502,31 +502,38 @@ namespace Bloom.Publish.BloomLibrary
 		void BackgroundUpload(object sender, DoWorkEventArgs e)
 		{
 			var book = (Book.Book) e.Argument;
-			var languages = _languagesFlow.Controls.Cast<CheckBox>().
+			var languageCodes = _languagesFlow.Controls.Cast<CheckBox>().
 				Where(b => b.Checked).Select(b => b.Tag).Cast<string>().ToList();
 			var checker = new LicenseChecker();
-			var message = checker.CheckBook(book, languages.ToArray());
+			var message = checker.CheckBook(book, languageCodes.ToArray());
 			if (message!= null)
 			{
 				_progressBox.WriteError(message);
 				e.Result = "quiet"; // suppress other completion/fail messages
 				return;
 			}
+
+			book.BookInfo.MetaData.Feature_Blind_LangCodes = _blindCheckBox.Checked ? book.GetLangCodesWithImageDescription().Intersect(languageCodes) : Enumerable.Empty<string>();
+
 			if (_signLanguageCheckBox.Checked && !string.IsNullOrEmpty(book.CollectionSettings.SignLanguageIso639Code))
 			{
-				languages.Insert(0, book.CollectionSettings.SignLanguageIso639Code);
-				PublishHelper.SetSignLanguageFeature(true, book.BookInfo.MetaData);
+				languageCodes.Insert(0, book.CollectionSettings.SignLanguageIso639Code);
+				PublishHelper.SetSignLanguageFeatureDeprecated(true, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeature(book.BookInfo.MetaData, book.CollectionSettings.SignLanguageIso639Code);
 			}
 			else
 			{
-				PublishHelper.SetSignLanguageFeature(false, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeatureDeprecated(false, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeature(book.BookInfo.MetaData);
 			}
 			var includeNarrationAudio = _narrationAudioCheckBox.Checked;
-			PublishHelper.SetTalkingBookFeature(includeNarrationAudio, book.BookInfo.MetaData);
-			PublishHelper.SetQuizFeature(book, book.BookInfo.MetaData);
+			var langsWithNarrationAudio = includeNarrationAudio ? book.GetLangCodesWithNarrationAudio().Intersect(languageCodes) : Enumerable.Empty<string>();
+			PublishHelper.SetTalkingBookFeatureDeprecated(includeNarrationAudio, book.BookInfo.MetaData);
+			PublishHelper.SetTalkingBookFeature(book.BookInfo.MetaData, langsWithNarrationAudio);
+			PublishHelper.SetQuizFeature(book, book.BookInfo.MetaData, allowedLanguages: languageCodes);
 			PublishHelper.SetMotionFeature(book, book.BookInfo.MetaData);
 			var includeBackgroundMusic = _backgroundMusicCheckBox.Checked;
-			var result = _model.UploadOneBook(book, _progressBox, _parentView, languages.ToArray(), !includeNarrationAudio, !includeBackgroundMusic, out _parseId);
+			var result = _model.UploadOneBook(book, _progressBox, _parentView, languageCodes.ToArray(), !includeNarrationAudio, !includeBackgroundMusic, out _parseId);
 			e.Result = result;
 		}
 
@@ -550,6 +557,7 @@ namespace Bloom.Publish.BloomLibrary
 			}
 		}
 
+		// TODO: Deprecate me
 		private void _blindCheckBox_CheckedChanged(object sender, EventArgs e)
 		{
 			_model.Book.BookInfo.MetaData.Feature_Blind = _blindCheckBox.Checked;
@@ -557,6 +565,7 @@ namespace Bloom.Publish.BloomLibrary
 
 		private void _signLanguageCheckBox_CheckedChanged(object sender, EventArgs e)
 		{
+			// TODO: Deprecate me
 			_model.Book.BookInfo.MetaData.Feature_SignLanguage = _signLanguageCheckBox.Checked;
 			_changeSignLanguageLinkLabel.Visible = _signLanguageCheckBox.Checked;
 		}

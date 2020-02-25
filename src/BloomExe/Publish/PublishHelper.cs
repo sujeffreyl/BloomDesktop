@@ -430,31 +430,63 @@ namespace Bloom.Publish
 		// to the blind.
 		public static void SetBlindFeature(Book.Book book, BookMetaData metaData)
 		{
+			// TODO: Remove this check
 			metaData.Feature_Blind =
 				book.RawDom.SelectSingleNode(".//*[contains(@class, 'bloom-page') and not(@data-xmatter-page)]//*[contains(@class, 'bloom-imageDescription')]") != null;
+
+			metaData.Feature_Blind_LangCodes = book.GetLangCodesWithImageDescription();
 		}
 
+		// TODO: Kinda feel like these belong in BookMetadata
 		public static void SetMotionFeature(Book.Book book, BookMetaData metaData)
 		{
+			// TODO: is this language-independent? I think so.
 			metaData.Feature_Motion = book.UseMotionModeInBloomReader;
 		}
 
-		public static void SetQuizFeature(Book.Book book, BookMetaData metaData)
+		public static void SetQuizFeature(Book.Book book, BookMetaData metaData, IList<string> allowedLanguages = null)
 		{
 			if (book.CollectionSettings.HaveEnterpriseFeatures)
+			{
 				metaData.Feature_Quiz = book.HasQuizPages;
+				metaData.Feature_Quiz_LangCodes = book.GetLangCodesWithQuizzes();
+				if (allowedLanguages != null)
+				{
+					metaData.Feature_Quiz_LangCodes = metaData.Feature_Quiz_LangCodes.Intersect(allowedLanguages);
+				}
+			}
 			else
+			{
 				metaData.Feature_Quiz = false;
+				metaData.Feature_Quiz_LangCodes = new string[0];
+			}
 		}
 
-		public static void SetTalkingBookFeature(bool hasAudio, BookMetaData metaData)
+		// TODO: Get rid of me one day soon.
+		public static void SetTalkingBookFeatureDeprecated(bool hasAudio, BookMetaData metaData)
 		{
 			metaData.Feature_TalkingBook = hasAudio;
 		}
 
-		public static void SetSignLanguageFeature(bool hasVideo, BookMetaData metaData)
+		public static void SetTalkingBookFeature(BookMetaData metaData, IEnumerable<string> langCodes)
+		{
+			metaData.Feature_TalkingBook_LangCodes = langCodes;
+		}
+
+		public static void SetSignLanguageFeatureDeprecated(bool hasVideo, BookMetaData metaData)
 		{
 			metaData.Feature_SignLanguage = hasVideo;
+		}
+
+		public static void SetSignLanguageFeature(BookMetaData metaData, params string[] langCodes)
+		{
+			metaData.Feature_SignLanguage_LangCodes = new HashSet<string>(langCodes);
+		}
+
+		// TODO: What should the order of parameters be?
+		public static void SetSignLanguageFeature(BookMetaData metaData, Book.Book book)
+		{
+			metaData.Feature_SignLanguage_LangCodes = book.GetLangCodesWithSignLanguage();
 		}
 
 		#region IDisposable Support
