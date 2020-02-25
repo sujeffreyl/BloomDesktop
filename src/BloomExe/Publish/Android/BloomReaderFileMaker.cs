@@ -136,9 +136,11 @@ namespace Bloom.Publish.Android
 				RobustFile.Delete(Path.Combine(modifiedBookFolderPath, "placeHolder.png"));
 			modifiedBook.Storage.CleanupUnusedAudioFiles(isForPublish: true);
 			modifiedBook.RemoveObsoleteAudioMarkup();
-			PublishHelper.SetTalkingBookFeature(modifiedBook.HasAudio(), modifiedBook.Storage.BookInfo.MetaData);
+			PublishHelper.SetTalkingBookFeatureDeprecated(modifiedBook.HasAudio(), modifiedBook.Storage.BookInfo.MetaData);
+			PublishHelper.SetTalkingBookFeature(modifiedBook.Storage.BookInfo.MetaData, modifiedBook.GetLangCodesWithNarrationAudio());
 			modifiedBook.Storage.CleanupUnusedVideoFiles();
-			PublishHelper.SetSignLanguageFeature(modifiedBook.HasVideos(), modifiedBook.Storage.BookInfo.MetaData);
+			PublishHelper.SetSignLanguageFeatureDeprecated(modifiedBook.HasVideos(), modifiedBook.Storage.BookInfo.MetaData);
+			PublishHelper.SetSignLanguageFeature(modifiedBook.Storage.BookInfo.MetaData, modifiedBook);
 
 			modifiedBook.SetAnimationDurationsFromAudioDurations();
 

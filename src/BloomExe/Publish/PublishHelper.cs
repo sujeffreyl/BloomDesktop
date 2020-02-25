@@ -432,29 +432,70 @@ namespace Bloom.Publish
 		{
 			metaData.Feature_Blind =
 				book.RawDom.SelectSingleNode(".//*[contains(@class, 'bloom-page') and not(@data-xmatter-page)]//*[contains(@class, 'bloom-imageDescription')]") != null;
+			//metaData.Feature_Blind_LangCodes = new HashSet<string>();
+			//var nodeList = book.OurHtmlDom.SafeSelectNodes(".//*[contains(@class, 'bloom-page') and not(@data-xmatter-page)]//*[contains(@class, 'bloom-imageDescription')]/div[@lang]");
+			//foreach (XmlElement node in nodeList)
+			//{
+			//	// Note: It is very common for InnerText to contain newlines, so you definitely want to check for whitespace only.
+			//	// Enhance: I guess we could ignore divs that consist only of &nbsp; too
+			//	if (!String.IsNullOrWhiteSpace(node.InnerText))
+			//	{
+			//		string lang = node.GetAttribute("lang");
+
+			//		// Review: Should I specifically check against the language "z"?
+			//		metaData.Feature_Blind_LangCodes.Add(lang);
+			//	}
+			//}
+
+			metaData.Feature_Blind_LangCodes = book.GetLangCodesWithImageDescription();
 		}
 
+		// TODO: Kinda feel like these belong in BookMetadata
 		public static void SetMotionFeature(Book.Book book, BookMetaData metaData)
 		{
+			// TODO: is this language-independent? I think so.
 			metaData.Feature_Motion = book.UseMotionModeInBloomReader;
 		}
 
 		public static void SetQuizFeature(Book.Book book, BookMetaData metaData)
 		{
 			if (book.CollectionSettings.HaveEnterpriseFeatures)
+			{
 				metaData.Feature_Quiz = book.HasQuizPages;
+				metaData.Feature_Quiz_LangCodes = book.GetLangCodesWithQuizzes();
+			}
 			else
+			{
 				metaData.Feature_Quiz = false;
+				metaData.Feature_Quiz_LangCodes = new string[0];
+			}
 		}
 
-		public static void SetTalkingBookFeature(bool hasAudio, BookMetaData metaData)
+		// TODO: Get rid of me one day soon.
+		public static void SetTalkingBookFeatureDeprecated(bool hasAudio, BookMetaData metaData)
 		{
 			metaData.Feature_TalkingBook = hasAudio;
 		}
 
-		public static void SetSignLanguageFeature(bool hasVideo, BookMetaData metaData)
+		public static void SetTalkingBookFeature(BookMetaData metaData, IEnumerable<string> langCodes)
+		{
+			metaData.Feature_TalkingBook_LangCodes = langCodes;
+		}
+
+		public static void SetSignLanguageFeatureDeprecated(bool hasVideo, BookMetaData metaData)
 		{
 			metaData.Feature_SignLanguage = hasVideo;
+		}
+
+		public static void SetSignLanguageFeature(BookMetaData metaData, params string[] langCodes)
+		{
+			metaData.Feature_SignLanguage_LangCodes = new HashSet<string>(langCodes);
+		}
+
+		// TODO: What should the order of parameters be?
+		public static void SetSignLanguageFeature(BookMetaData metaData, Book.Book book)
+		{
+			metaData.Feature_SignLanguage_LangCodes = book.GetLangCodesWithSignLanguage();
 		}
 
 		#region IDisposable Support

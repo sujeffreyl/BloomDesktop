@@ -1072,7 +1072,25 @@ namespace Bloom.Book
 			get
 			{
 				var features = new List<string>(5);
-				if (Feature_Blind) features.Add("blind");
+
+				Debug.Assert(Feature_Blind == (Feature_Blind_LangCodes?.Any() == true), "Feature_Blind calculation does not match! Feature_Blind=" + Feature_Blind);
+				Debug.Assert(Feature_SignLanguage == (Feature_SignLanguage_LangCodes?.Any() == true), "Feature_SignLanguage calculation does not match! Feature_SignLanguage=" + Feature_SignLanguage);
+				Debug.Assert(Feature_TalkingBook == (Feature_TalkingBook_LangCodes?.Any() == true), "Feature_TalkingBook calculation does not match! Feature_TalkingBook=" + Feature_TalkingBook);
+				//if (Feature_Blind_LangCodes?.Any() == true)
+				//{
+				//	features.Add("blind");
+				//	foreach (var lang in Feature_Blind_LangCodes)
+				//	{
+				//		features.Add($"blind:{lang}");
+				//	}
+				//}
+				AddFeaturesToList(features, "blind", Feature_Blind_LangCodes);
+				AddFeaturesToList(features, "signLanguage", Feature_SignLanguage_LangCodes);
+				AddFeaturesToList(features, "talkingBook", Feature_TalkingBook_LangCodes);
+				AddFeaturesToList(features, "quiz", Feature_Quiz_LangCodes);
+
+
+				// if (Feature_Blind) features.Add("blind");
 				if (Feature_SignLanguage) features.Add("signLanguage");
 				if (Feature_TalkingBook) features.Add("talkingBook");
 				if (Feature_Motion) features.Add("motion");
@@ -1081,6 +1099,8 @@ namespace Bloom.Book
 			}
 			set
 			{
+				// TODO: Need to update this too.
+
 				Feature_Blind = value.Contains("blind");
 				Feature_SignLanguage = value.Contains("signLanguage");
 				Feature_TalkingBook = value.Contains("talkingBook");
@@ -1088,6 +1108,29 @@ namespace Bloom.Book
 				Feature_Quiz = value.Contains("quiz");
 			}
 		}
+
+		// Modifies featureList with the new features to be added
+		// Includes both the overall feature as well as the language-specific features
+		private static void AddFeaturesToList(IList<string> featureList, string featureName, IEnumerable<string> languagesWithFeature)
+		{
+			if (languagesWithFeature?.Any() == true)
+			{
+				featureList.Add(featureName);
+				foreach (var langCode in languagesWithFeature)
+				{
+					featureList.Add($"{featureName}:{langCode}");
+				}
+			}
+		}
+
+		[JsonIgnore]
+		public IEnumerable<string> Feature_Blind_LangCodes { get; set; }
+		[JsonIgnore]
+		public IEnumerable<string> Feature_SignLanguage_LangCodes{ get; set; }
+		[JsonIgnore]
+		public IEnumerable<string> Feature_TalkingBook_LangCodes { get; set; }
+		[JsonIgnore]
+		public IEnumerable<string> Feature_Quiz_LangCodes { get; set; }
 
 		[JsonIgnore]
 		public bool Feature_Blind { get; set; }
