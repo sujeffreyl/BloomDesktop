@@ -95,12 +95,8 @@ namespace Bloom.Publish.Android
 			// used to report features analytics (with earlier bloomd's, the reader must use its own logic)
 			modifiedBook.Storage.BookInfo.MetaData.BloomdVersion = 1;
 
-			// We have to do this before removeUnwantedContent, which currently strips out the bloom-imageDescription
-			// stuff (though somehow the audio for it plays in BR). We rule out xmatter pages, because some versions
-			// of xmatter always have image description nodes.
-			PublishHelper.SetBlindFeature(modifiedBook, modifiedBook.Storage.BookInfo.MetaData);
+			// TODO: Axe me
 			PublishHelper.SetMotionFeature(modifiedBook, modifiedBook.Storage.BookInfo.MetaData);
-			PublishHelper.SetQuizFeature(modifiedBook, modifiedBook.Storage.BookInfo.MetaData);
 
 			if (settings?.LanguagesToInclude != null)
 				PublishModel.RemoveUnwantedLanguageData(modifiedBook.OurHtmlDom, settings.LanguagesToInclude, modifiedBook.CollectionSettings.Language2.Iso639Code);
@@ -134,11 +130,21 @@ namespace Bloom.Publish.Android
 			modifiedBook.Storage.CleanupUnusedImageFiles(keepFilesForEditing: false);
 			if (RobustFile.Exists(Path.Combine(modifiedBookFolderPath, "placeHolder.png")))
 				RobustFile.Delete(Path.Combine(modifiedBookFolderPath, "placeHolder.png"));
+
+			// We want these to run after RemoveUnwantedContent() so that the metadata will more accurately reflect
+			// the subset of contents that are included in the .bloomd
+			//PublishHelper.SetQuizFeature(modifiedBook, modifiedBook.Storage.BookInfo.MetaData);
+			//PublishHelper.SetBlindFeature(modifiedBook, modifiedBook.Storage.BookInfo.MetaData);
+
 			modifiedBook.Storage.CleanupUnusedAudioFiles(isForPublish: true);
 			modifiedBook.RemoveObsoleteAudioMarkup();
-			PublishHelper.SetTalkingBookFeature(modifiedBook.HasAudio(), modifiedBook.Storage.BookInfo.MetaData);
+			PublishHelper.SetTalkingBookFeatureDeprecated(modifiedBook.HasAudio(), modifiedBook.Storage.BookInfo.MetaData);
+			//PublishHelper.SetTalkingBookFeature(modifiedBook.Storage.BookInfo.MetaData, modifiedBook.GetLangCodesWithNarrationAudio());
 			modifiedBook.Storage.CleanupUnusedVideoFiles();
-			PublishHelper.SetSignLanguageFeature(modifiedBook.HasVideos(), modifiedBook.Storage.BookInfo.MetaData);
+			PublishHelper.SetSignLanguageFeatureDeprecated(modifiedBook.HasSignLanguageVideos(), modifiedBook.Storage.BookInfo.MetaData);
+			//PublishHelper.SetSignLanguageFeature(modifiedBook.Storage.BookInfo.MetaData, modifiedBook);
+			modifiedBook.UpdateMetadataFeatures();
+
 
 			modifiedBook.SetAnimationDurationsFromAudioDurations();
 
