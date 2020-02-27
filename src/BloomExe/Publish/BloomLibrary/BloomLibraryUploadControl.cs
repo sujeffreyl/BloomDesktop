@@ -512,18 +512,27 @@ namespace Bloom.Publish.BloomLibrary
 				e.Result = "quiet"; // suppress other completion/fail messages
 				return;
 			}
+
+			// REVIEW: This design is inconsistent with how we use PublishHelper for the others. Where do we want to put this responsibility?
+			book.BookInfo.MetaData.Feature_Blind_LangCodes = _blindCheckBox.Checked ? book.GetLangCodesWithImageDescription().Intersect(languages) : Enumerable.Empty<string>();
+
 			if (_signLanguageCheckBox.Checked && !string.IsNullOrEmpty(book.CollectionSettings.SignLanguageIso639Code))
 			{
 				languages.Insert(0, book.CollectionSettings.SignLanguageIso639Code);
-				PublishHelper.SetSignLanguageFeature(true, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeatureDeprecated(true, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeature(book.BookInfo.MetaData, book.CollectionSettings.SignLanguageIso639Code);
 			}
 			else
 			{
-				PublishHelper.SetSignLanguageFeature(false, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeatureDeprecated(false, book.BookInfo.MetaData);
+				PublishHelper.SetSignLanguageFeature(book.BookInfo.MetaData);
 			}
 			var includeNarrationAudio = _narrationAudioCheckBox.Checked;
-			PublishHelper.SetTalkingBookFeature(includeNarrationAudio, book.BookInfo.MetaData);
-			PublishHelper.SetQuizFeature(book, book.BookInfo.MetaData);
+			var langsWithNarrationAudio = includeNarrationAudio ? book.GetLangCodesWithNarrationAudio().Intersect(languages) : Enumerable.Empty<string>();
+			PublishHelper.SetTalkingBookFeatureDeprecated(includeNarrationAudio, book.BookInfo.MetaData);
+			PublishHelper.SetTalkingBookFeature(book.BookInfo.MetaData, langsWithNarrationAudio);
+			// Note: Old versions of Blooom only checked if some language contained a quiz, but did not check to see if the languages containing a quiz were actually uploaded or not.
+			PublishHelper.SetQuizFeature(book, book.BookInfo.MetaData, allowedLanguages: languages);
 			PublishHelper.SetMotionFeature(book, book.BookInfo.MetaData);
 			var includeBackgroundMusic = _backgroundMusicCheckBox.Checked;
 			var result = _model.UploadOneBook(book, _progressBox, _parentView, languages.ToArray(), !includeNarrationAudio, !includeBackgroundMusic, out _parseId);
@@ -550,6 +559,7 @@ namespace Bloom.Publish.BloomLibrary
 			}
 		}
 
+		// TODO: Deprecate me
 		private void _blindCheckBox_CheckedChanged(object sender, EventArgs e)
 		{
 			_model.Book.BookInfo.MetaData.Feature_Blind = _blindCheckBox.Checked;
@@ -557,6 +567,7 @@ namespace Bloom.Publish.BloomLibrary
 
 		private void _signLanguageCheckBox_CheckedChanged(object sender, EventArgs e)
 		{
+			// TODO: Deprecate me
 			_model.Book.BookInfo.MetaData.Feature_SignLanguage = _signLanguageCheckBox.Checked;
 			_changeSignLanguageLinkLabel.Visible = _signLanguageCheckBox.Checked;
 		}

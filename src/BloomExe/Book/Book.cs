@@ -1803,18 +1803,8 @@ namespace Bloom.Book
 		{
 			var result = new Dictionary<string, bool>();
 			var parents = new HashSet<XmlElement>(); // of interesting non-empty children
-			const string pageXpathFront = "//div[contains(@class, 'bloom-page')";
-			const string xpathEnd = "]//div[@class and @lang]";
-			var xmatterXpath = countXmatter ? "" : " and not(contains(@class, 'bloom-frontMatter')) and not(contains(@class, 'bloom-backMatter'))";
-			// editable divs that are in non-x-matter pages and have a potentially interesting language.
-			var langDivs = OurHtmlDom.SafeSelectNodes(pageXpathFront + xmatterXpath + xpathEnd).Cast<XmlElement>()
-				.Where(div => !div.ParentNode.Attributes["class"].Value.Contains("bloom-ignoreChildrenForBookLanguageList"))
-				.Where(div => div.Attributes["class"].Value.IndexOf("bloom-editable", StringComparison.InvariantCulture) >= 0)
-				.Where(div =>
-				{
-					var lang = div.Attributes["lang"].Value;
-					return lang != "*" && lang != "z" && lang != ""; // Not valid languages, though we sometimes use them for special purposes
-				}).ToArray();
+			var langDivs = GetLanguageDivs(countXmatter).ToArray();
+
 			// First pass: fill in the dictionary with languages which have non-empty content in relevant divs
 			foreach (var div in langDivs)
 			{
@@ -1841,6 +1831,34 @@ namespace Bloom.Book
 				}
 			}
 			return result;
+		}
+
+		/// <summary>
+		/// Returns the bloom-editable divs that have valid (e.g. non-empty) language attributes on them.
+		/// Ignores divs that are under bloom-ignoreChildrenForBookLanguageList
+		/// </summary>
+		/// <param name="includeXMatter">True to include divs in xmatter pages, false to exclude them</param>
+		private IEnumerable<XmlElement> GetLanguageDivs(bool includeXMatter)
+		{
+			const string pageXpathFront = "//div[contains(@class, 'bloom-page')";
+			const string xpathEnd = "]//div[@class and @lang]";
+			var xmatterXpath = includeXMatter ? "" : " and not(contains(@class, 'bloom-frontMatter')) and not(contains(@class, 'bloom-backMatter'))";
+			// editable divs that are in non-x-matter pages and have a potentially interesting language.
+
+			var langDivs = OurHtmlDom.SafeSelectNodes(pageXpathFront + xmatterXpath + xpathEnd).Cast<XmlElement>()
+				.Where(div => !div.ParentNode.Attributes["class"].Value.Contains("bloom-ignoreChildrenForBookLanguageList"))
+				.Where(div => div.Attributes["class"].Value.IndexOf("bloom-editable", StringComparison.InvariantCulture) >= 0)
+				.Where(div => IsLanguageValid(div.Attributes["lang"].Value));
+
+			return langDivs;
+		}
+
+		/// <summary>
+		/// Checks if the specified language is considered valid (e.g. non-empty, not "*", not "z")
+		/// </summary>
+		internal static bool IsLanguageValid(string lang)
+		{
+			return !String.IsNullOrWhiteSpace(lang) && lang != "*" && lang != "z";  // Not valid languages, though we sometimes use them for special purposes
 		}
 
 		private bool IsLanguageWanted(XmlElement parent, string lang)
@@ -1937,11 +1955,19 @@ namespace Bloom.Book
 		/// <returns></returns>
 		public bool HasAudio()
 		{
+			return GetRecordedAudioSentences().Any();
+		}
+
+		/// <summary>
+		/// Returns the elements that reference an audio file that exist
+		/// </summary>
+		/// <returns></returns>
+		public IEnumerable<XmlElement> GetRecordedAudioSentences()
+		{
 			return
 				HtmlDom.SelectAudioSentenceElements(RawDom.DocumentElement)
 					.Cast<XmlElement>()
-					.Any(
-						span => AudioProcessor.DoesAudioExistForSegment(Storage.FolderPath, span.Attributes["id"]?.Value));
+					.Where(span => AudioProcessor.DoesAudioExistForSegment(Storage.FolderPath, span.Attributes["id"]?.Value));
 		}
 
 		/// <summary>
@@ -3398,7 +3424,140 @@ namespace Bloom.Book
 			return true;
 		}
 
+		/// <summary>
+		/// Determines which languages contain at least one meaningful image description
+		/// Image descriptions in XMatter don't count
+		/// </summary>
+		/// <returns>Returns a distinct list of the language codes that do</returns>
+		public List<string> GetLangCodesWithImageDescription()
+		{
+			var langCodes = this.OurHtmlDom
+				.SafeSelectNodes(".//*[contains(@class, 'bloom-page') and not(@data-xmatter-page)]//*[contains(@class, 'bloom-imageDescription')]/div[@lang]")
+				.Cast<XmlElement>()
+				.Where(node => !String.IsNullOrWhiteSpace(node.InnerText))  // Note that it is common for InnerText to contain whitespace like "\r\n"
+				.Select(node => node.GetAttribute("lang"))
+				.Where(IsLanguageValid)
+				.Distinct()
+				.ToList();
 
+			return langCodes;
+		}
+
+		/// <summary>
+		/// Determines which languages contain sign language video
+		/// </summary>
+		/// <returns>If the book contains SL videos and collection SL is set, returns a list of just that.
+		/// If the book contains SL but collection SL is not set, the list will contain the empty string.
+		/// If the book doesn't contain SL videos, returns an empty list
+		/// </returns>
+		public List<string> GetLangCodesWithSignLanguage()
+		{
+			var langCodes = new List<string>(1);
+			if (this.HasVideos())
+			{
+				// Sign language videos don't have a specific lang attribute associated with them.
+				// So we've been assuming they're in the sign language specified by the collection settings.
+				string signLanguageCode = this.CollectionSettings.SignLanguageIso639Code;
+
+				// Note: even if signLanguageCode is empty string, choose to pass it through anyway.
+				// (We need some indicator that it contains sign language, even if we're not sure exactly what language it is)
+				// It may be empty when Publishing to Bloom Reader, although the publish to Web interface ensures that the collection setting
+				// is set before allowing the user to continue
+				langCodes.Add(signLanguageCode);
+			}
+
+			return langCodes;
+		}
+
+		/// <summary>
+		/// Determines which languages contain at least one meaningful narration audio
+		/// Narration audio in XMatter DOES count (for now?)
+		/// </summary>
+		/// <returns>Returns a distinct list of the valid language codes that do</returns>
+		public List<string> GetLangCodesWithNarrationAudio()
+		{
+			var langCodes = GetRecordedAudioSentences()
+				.Select(GetClosestLangCode)
+				.Where(IsLanguageValid)
+				.Distinct()
+				.ToList();
+
+			return langCodes;
+		}
+
+		/// <summary>
+		/// Finds the lanaguage code which is closest to the startElement
+		/// The search begins at (and includes) the startElement and continues up through its ancestors
+		/// </summary>
+		/// <param name="startElement">The element to start at</param>
+		/// <returns>The first lang code found on a "lang" attribute, or "" if none found.</returns>
+		private string GetClosestLangCode(XmlElement startElement)
+		{
+			XmlElement currentElement = startElement;
+			while (currentElement != null)
+			{
+				if (currentElement.HasAttribute("lang"))
+				{
+					return currentElement.GetAttribute("lang");
+				}
+
+				currentElement = currentElement.ParentNode as XmlElement;
+			}
+
+			return "";
+		}
+
+		/// <summary>
+		/// Determines which languages contain at least one meaningful quiz element
+		/// </summary>
+		/// <returns>Returns a distinct list of the valid language codes that do</returns>
+		public List<string> GetLangCodesWithQuizzes()
+		{
+			// Note: The Quiz Header is ignored (even though it contains many languages) for free by calling GetLangaugeDivs,
+			// which happens to filter that out for us.
+			var langDivs = GetLanguageDivs(includeXMatter: false);
+
+			// Now check for non-empty language divs that are underneath a quiz page.
+			// Then get their distinct lang codes.
+			var langCodeSet = langDivs.Where(div => !String.IsNullOrWhiteSpace(div.InnerText))
+				.Where(IsQuizNode)
+				.Select(div => div.GetAttribute("lang"))
+				.Where(IsLanguageValid)
+				.Distinct()
+				// Not safe to defer execution, so convert to list immediately.
+				// At minimum, deferring caused Null Reference Exception when trying to Publish to Bloom Reader when calling BookMetaInfo's Features getter.
+				.ToList();
+
+			return langCodeSet;
+		}
+
+		/// <summary>
+		/// Checks if a node is part of a quiz
+		/// </summary>
+		/// <param name="node">The node to check</param>
+		/// <returns>Returns true if it is part of a quiz. False otherwise.</returns>
+		internal static bool IsQuizNode(XmlNode node)
+		{
+			// Walk through this element's ancestors to see if anything contains the "quiz" class
+			XmlNode currentNode = node;
+			while (currentNode != null)
+			{
+				if (currentNode.Attributes != null)
+				{
+					string classCombinedString = currentNode.GetOptionalStringAttribute("class", defaultValue: "");
+					string[] classes = classCombinedString.Split(' ');
+					if (classes.Contains("quiz"))
+					{
+						return true;
+					}
+				}
+
+				currentNode = currentNode.ParentNode;
+			}
+
+			// We've gone through all its ancestors and none of them have class quiz.
+			return false;
+		}
 
 		// This is a shorthand for a whole set of features.
 		// Note: we are currently planning to eventually store this primarily in the data-div, with the
