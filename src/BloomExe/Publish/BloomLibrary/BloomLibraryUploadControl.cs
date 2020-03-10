@@ -524,6 +524,12 @@ namespace Bloom.Publish.BloomLibrary
 				isSignLanguageEnabled: _signLanguageCheckBox.Checked,
 				allowedLanguages: languages);
 
+			// Need to make sure to flush the updated metadata (if any) to disk
+			// If enterprise settings is off, then we need to make a new copy of the book that removes any enterprise features,
+			// and we want to ensure that the copy picks up the updated meatadata instead of persisting the now out-of-date old metadata
+			// (See BookTransfer.cs::PrepareBookForUpload(), which is called by _model.UploadOneBook())
+			book.BookInfo.Save();
+
 			var includeNarrationAudio = _narrationAudioCheckBox.Checked;
 			var includeBackgroundMusic = _backgroundMusicCheckBox.Checked;
 			var result = _model.UploadOneBook(book, _progressBox, _parentView, languages.ToArray(), !includeNarrationAudio, !includeBackgroundMusic, out _parseId);
