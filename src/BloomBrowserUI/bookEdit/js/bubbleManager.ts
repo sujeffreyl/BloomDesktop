@@ -110,6 +110,8 @@ export class BubbleManager {
         }
 
         if (newHeight + wrapperBox.offsetTop > container.clientHeight) {
+            console.log("Test: Trying to force container.scrollTop to 0");
+            container.scrollTop = 0;
             return false;
         }
 
@@ -658,6 +660,23 @@ export class BubbleManager {
         const oldWidth = content.width();
         const oldHeight = content.height();
 
+        console.log(`Old (Relative to viewport): (${oldLeft}, ${oldTop})`);
+
+        // const containerPosInfo = container.getBoundingClientRect();
+        // console.log(
+        //     `Container (Relative to viewport): (${containerPosInfo.left}, ${
+        //         containerPosInfo.top
+        //     })`
+        // );
+
+        const imgElement = container.getElementsByTagName("img").item(0);
+        const imgElementPosInfo = imgElement!.getBoundingClientRect();
+        console.log(
+            `IMG (Relative to viewport): (${imgElementPosInfo.left}, ${
+                imgElementPosInfo.top
+            })`
+        );
+
         let newLeft = oldLeft;
         let newTop = oldTop;
         let newWidth = oldWidth;
@@ -741,6 +760,7 @@ export class BubbleManager {
             content.get(0).classList.remove("bloom-allowAutoShrink");
         }
 
+        console.log(`New: (${newLeft}, ${newTop}))`);
         // Width/Height should use unscaled units
         content.width(newWidth);
         content.height(newHeight);
@@ -1286,11 +1306,11 @@ export class BubbleManager {
         wrapperBox.css("left", xOffset); // assumes numbers are in pixels
         wrapperBox.css("top", yOffset); // assumes numbers are in pixels
 
-        BubbleManager.setTextboxPositionAsPercentage(
-            wrapperBox,
-            xOffset,
-            yOffset
-        ); // translate px to %
+        // BubbleManager.setTextboxPositionAsPercentage(
+        //     wrapperBox,
+        //     xOffset,
+        //     yOffset
+        // ); // translate px to %
     }
 
     // mouseX and mouseY are the location in the viewport of the mouse when right-clicking

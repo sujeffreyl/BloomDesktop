@@ -270,11 +270,21 @@ export default class OverflowChecker {
         let [overflowX, overflowY] = OverflowChecker.getSelfOverflowAmounts(
             box
         );
+        if (overflowY > 0) {
+            console.log("Initial overflow amount: " + overflowY);
+        }
         if (BubbleManager.growOverflowingBox(box, overflowY)) {
             overflowY = 0;
             box.scrollTop = 0; // now it should all fit, so no need to be scrolled down
+            // } else {
+            //     // TODO: Temp code. Should only apply for bubbles or something.
+            //     console.log("Temp forcing scrollTop to 0 anyway...");
+            //     box.scrollTop = 0;
         }
+
         if (overflowY > 0 || overflowX > 0) {
+            console.log("Still overflowed: " + overflowY);
+
             $box.addClass("overflow");
             theOneLocalizationManager
                 .asyncGetText(
@@ -329,6 +339,7 @@ export default class OverflowChecker {
                 // BL-1261: don't want the typed-in box to be marked overflow just because it made another box
                 // go past the margins
                 // $box.addClass('overflow'); // probably typing in the focused element caused this
+                console.log("Overflowing the parent");
                 $this.addClass("thisOverflowingParent"); // but it's this one that is actually overflowing
                 $overflowingAncestor.addClass("childOverflowingThis");
                 theOneLocalizationManager
