@@ -201,7 +201,7 @@ export default class AudioRecording {
             .click(e => this.listenAsync());
         $("#audio-clear")
             .off()
-            .click(e => this.clearRecording());
+            .click(e => this.clearRecordingAsync());
 
         $("#" + kPlaybackOrderClickHandler)
             .off()
@@ -1502,9 +1502,62 @@ export default class AudioRecording {
         });
     }
 
+    // // Clear the recording for this sentence
+    // private clearRecording(): void {
+    //     toastr.clear();
+
+    //     if (!this.isEnabledOrExpected("clear")) {
+    //         return;
+    //     }
+
+    //     // First determine which IDs we need to delete.
+    //     const elementIdsToDelete: string[] = [];
+    //     if (this.audioRecordingMode == AudioRecordingMode.Sentence) {
+    //         elementIdsToDelete.push(this.currentAudioId);
+    //     } else {
+    //         // i.e., AudioRecordingMode = TextBox
+    //         // In particular, AudioRecordingMode = TextBox but PlaybackMode = Sentence is more complicated.
+    //         // Need to delete all the segments (sentences) in this text box.
+    //         // (TextBox/TextBox is easy and works either way, whether same as Sentence/Sentence or using the logic to find all segments within the text box used for TextBox/Sentence)
+    //         const sentences = this.getAudioSegmentsInCurrentTextBox();
+    //         for (let i = 0; i < sentences.length; ++i) {
+    //             elementIdsToDelete.push(sentences[i].id);
+    //         }
+    //     }
+
+    //     // Now go about sending out the API calls to actually delete them.
+    //     for (let i = 0; i < elementIdsToDelete.length; ++i) {
+    //         const idToDelete = elementIdsToDelete[i];
+
+    //         axios
+    //             .post("/bloom/api/audio/deleteSegment?id=" + idToDelete)
+    //             .then(result => {
+    //                 // data-duration needs to be deleted when the file is deleted.
+    //                 // See https://silbloom.myjetbrains.com/youtrack/issue/BL-3671.
+    //                 // Note: this is not foolproof because the durationchange handler is
+    //                 // being called asynchronously with stale data and sometimes restoring
+    //                 // the deleted attribute.
+    //                 var current = this.getPageDocBodyJQuery().find(
+    //                     "#" + idToDelete
+    //                 );
+    //                 if (current.length !== 0) {
+    //                     current.first().removeAttr("data-duration");
+    //                 }
+    //             })
+    //             .catch(error => {
+    //                 toastr.error(error.statusText);
+    //             });
+    //     }
+
+    //     this.clearAudioSplit();
+    //     this.updatePlayerStatus();
+    //     this.changeStateAndSetExpectedAsync("record");
+    // }
+
     // Clear the recording for this sentence
-    private clearRecording(): void {
+    private async clearRecordingAsync(): Promise<void> {
         toastr.clear();
+        toastr.info("clearRecordingAsync");
 
         if (!this.isEnabledOrExpected("clear")) {
             return;
@@ -1525,11 +1578,12 @@ export default class AudioRecording {
             }
         }
 
+        const asyncTasks: Promise<void>[] = [];
         // Now go about sending out the API calls to actually delete them.
         for (let i = 0; i < elementIdsToDelete.length; ++i) {
             const idToDelete = elementIdsToDelete[i];
 
-            axios
+            const task = axios
                 .post("/bloom/api/audio/deleteSegment?id=" + idToDelete)
                 .then(result => {
                     // data-duration needs to be deleted when the file is deleted.
@@ -1547,11 +1601,17 @@ export default class AudioRecording {
                 .catch(error => {
                     toastr.error(error.statusText);
                 });
+
+            asyncTasks.push(task);
         }
 
         this.clearAudioSplit();
         this.updatePlayerStatus();
-        this.changeStateAndSetExpectedAsync("record");
+
+        await Promise.all(asyncTasks);
+        const playbackMode = this.getCurrentPlaybackMode();
+        this.updateMarkupForCurrentText(playbackMode);
+        return this.changeStateAndSetExpectedAsync("record");
     }
 
     private doesRecordingExistForCurrentSelection(): boolean {
@@ -2228,11 +2288,13 @@ export default class AudioRecording {
         const isPresent = await recordable.areRecordingsPresentAsync();
 
         if (!isPresent) {
+            toastr.info("Updating markup");
             this.updateMarkupForCurrentText(audioPlaybackMode);
         } else {
             // Just keep the code from changing the splits.
             // No notification right now, which I think in many cases would be fine
             // But if you want to add some notification UI, it can go here.
+            toastr.warning("Updating markup NOT ALLOWED");
         }
 
         // Regardless of whether it's present, we always need to set the current audio element
