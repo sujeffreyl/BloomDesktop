@@ -13,14 +13,16 @@
         to hide the details so that we can easily change it later.
 */
 
+import { IPageFrameExports } from "../editablePage";
+
 interface WindowWithExports extends Window {
     FrameExports: any;
 }
 export function getToolboxFrameExports() {
     return getFrameExports("toolbox");
 }
-export function getPageFrameExports() {
-    return getFrameExports("page");
+export function getPageFrameExports(): IPageFrameExports | null {
+    return getFrameExports("page") as IPageFrameExports | null;
 }
 export function getEditViewFrameExports() {
     return (<any>getRootWindow()).FrameExports;
@@ -30,11 +32,16 @@ function getRootWindow(): Window {
     //if parent is null, we're the root
     return window.parent || window;
 }
-function getFrame(id: string): WindowWithExports {
-    // Enhance: This needs a plan for what happens if getElementById returns null.
-    return (<HTMLIFrameElement>getRootWindow().document.getElementById(id))
-        .contentWindow as WindowWithExports;
+
+function getFrame(id: string): WindowWithExports | null {
+    const element = getRootWindow().document.getElementById(id);
+    if (!element) {
+        return null;
+    }
+
+    return (<HTMLIFrameElement>element).contentWindow as WindowWithExports;
 }
+
 function getFrameExports(id: string): any {
-    return getFrame(id).FrameExports;
+    return getFrame(id)?.FrameExports;
 }

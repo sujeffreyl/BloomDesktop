@@ -27,8 +27,8 @@ import { reportError } from "../lib/errorHandler";
 export function handleUndo(): void {
     // First see if origami is active and knows about something we can undo.
     var contentWindow = getPageFrameExports();
-    if (contentWindow && (<any>contentWindow).origamiCanUndo()) {
-        (<any>contentWindow).origamiUndo();
+    if (contentWindow && contentWindow.origamiCanUndo()) {
+        contentWindow.origamiUndo();
     }
     // Undoing changes made by commands and dialogs in the toolbox can't be undone using
     // ckeditor, and has its own mechanism. Look next to see whether we know about any Undos there.
