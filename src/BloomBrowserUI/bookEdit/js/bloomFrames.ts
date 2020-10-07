@@ -28,6 +28,10 @@ export function getEditViewFrameExports() {
     return (<any>getRootWindow()).FrameExports;
 }
 
+export async function getPageFrameExportsAsync(): Promise<IPageFrameExports | null> {
+    return getFrameExportsAsync("page") as Promise<IPageFrameExports | null>;
+}
+
 function getRootWindow(): Window {
     //if parent is null, we're the root
     return window.parent || window;
@@ -42,6 +46,59 @@ function getFrame(id: string): WindowWithExports | null {
     return (<HTMLIFrameElement>element).contentWindow as WindowWithExports;
 }
 
+async function getFrameAsync(id: string): Promise<WindowWithExports | null> {
+    const element = await getFrameElementAsync(id);
+    if (!element) {
+        return null;
+    }
+
+    return element.contentWindow as WindowWithExports;
+}
+
+// Returns an HTMLIFrameElement corresponding to the specified id.
+// Promise is only fulfilled when that iframe has completed laoding.
+async function getFrameElementAsync(
+    id: string
+): Promise<HTMLIFrameElement | null> {
+    const element = getRootWindow().document.getElementById(id);
+
+    if (!element) {
+        // No element with that ID
+        return Promise.resolve(null);
+    }
+
+    const iframe = element as HTMLIFrameElement;
+    const iframeDoc = iframe.contentDocument;
+
+    if (!iframeDoc) {
+        // Not sure what this means... just return null
+        return Promise.resolve(null);
+    }
+
+    if (iframeDoc.readyState === "complete") {
+        // Easy case (and hopefully main case): iframe completely loaded and ready
+        return iframe;
+    } else {
+        // Yuck. The iframe is still loading. We need to wait until until it finishes loading.
+        console.log(
+            "iframeDoc is still loading! readyState = " + iframeDoc.readyState
+        );
+        return new Promise<HTMLIFrameElement>((resolve, reject) => {
+            iframeDoc.addEventListener("load", () => {
+                resolve(iframe);
+            });
+
+            iframeDoc.addEventListener("error", () => {
+                reject(new Error("iframe document encountered error."));
+            });
+        });
+    }
+}
+
 function getFrameExports(id: string): any {
     return getFrame(id)?.FrameExports;
+}
+
+async function getFrameExportsAsync(id: string): Promise<any> {
+    return (await getFrameAsync(id))?.FrameExports;
 }
