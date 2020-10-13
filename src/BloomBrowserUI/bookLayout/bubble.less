@@ -338,58 +338,109 @@
 //     }
 // }
 
+// // Set vertical alignment to center
+// .bloom-imageContainer .bloom-textOverPicture[data-bubble] {
+//     .bloom-translationGroup {
+//         //height: unset;
+//         // TODO: Get a 2 pixel padding or something in.
+//     }
+
+//     // Note: This needs a little bit of specificity to beat out some other rules which set it to display: block instead
+//     .bloom-editable.bloom-visibility-code-on,
+//     .bloom-editable.bloom-visibility-user-on {
+//         // Best to do this with flex boxes.
+//         // First, vertical-align: middle doesn't work on display:block, only inline and table-cell
+//         // If the bloom-editable is display:inline and the paragraphs align middle, all the paragraphs will EACH be aligned middle... they'll all run together on the same line.
+//         // So we'll use a flexbox to ensure that all the items inside of it are collectively centered.
+//         display: flex;
+//         flex-direction: column; // This is supposed to be redundant, but since it's crucial to enabling the vertical alignment to work properly, set it again
+//         //flex-shrink: 0;
+//         flex-wrap: no-wrap;
+
+//         color: green;
+
+//         // Make sure not to set align-items. You want to let the StyleEditor's Paragraph -> (Horizontal) Alignment button be able to effectively control that. (It may insert text-align: initial)
+
+//         // Vertical alignment
+//         justify-content: center;
+
+//         p {
+//             display: flex;
+//             flex-direction: column;
+//             justify-content: center;
+//             flex-shrink: 0;
+//         }
+//     }
+
+//     // bloom-vertical-align should be on the translation group
+//     .bloom-vertical-align-top {
+//         .bloom-editable {
+//             justify-content: flex-start;
+//             p {
+//                 justify-content: flex-start;
+//             }
+//         }
+//     }
+
+//     .bloom-vertical-align-center {
+//         .bloom-editable {
+//             justify-content: center;
+//             p {
+//                 justify-content: center;
+//             }
+//         }
+//     }
+
+//     .bloom-vertical-align-bottom {
+//         .bloom-editable {
+//             justify-content: flex-end;
+//             p {
+//                 justify-content: flex-end;
+//             }
+//         }
+//     }
+// }
+
 // Set vertical alignment to center
 .bloom-imageContainer .bloom-textOverPicture[data-bubble] {
-    // Note: This needs a little bit of specificity to beat out some other rules which set it to display: block instead
+    // Note: Needs a bit of specificity to beat display: block rule in langVisibility.css
+    // However, also need to make sure you don't accidentall change display: none to display: flex
     .bloom-editable.bloom-visibility-code-on,
     .bloom-editable.bloom-visibility-user-on {
-        // Best to do this with flex boxes.
-        // First, vertical-align: middle doesn't work on display:block, only inline and table-cell
-        // If the bloom-editable is display:inline and the paragraphs align middle, all the paragraphs will EACH be aligned middle... they'll all run together on the same line.
-        // So we'll use a flexbox to ensure that all the items inside of it are collectively centered.
         display: flex;
-        flex-direction: column; // This is supposed to be redundant, but since it's crucial to enabling the vertical alignment to work properly, set it again
-        flex-shrink: 0;
+
+        // We use direction=row, wrap, and item's basis=100% in order to layout the paragraphs (flex-item)
+        // one paragraph after another vertically.
+        // The benefit of using direction = row is that our OverflowChecker code was already able to handle
+        // correctly resizing these items, whereas when I laid it out using column, it didn't work.
+        flex-direction: row;
+        flex-wrap: wrap;
 
         color: blue;
 
-        // Make sure not to set align-items. You want to let the StyleEditor's Paragraph -> (Horizontal) Alignment button be able to effectively control that. (It may insert text-align: initial)
-
         // Vertical alignment
-        justify-content: center;
+        align-items: center;
 
         p {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            // Disable shrinking each item if they don't all fit in the flex-container.
+            // flex-shrink: 0;
+
+            // Lays it out as if it took up 100% of the width, so that each flex-item (i.e. each paragraph)
+            // will be on the next line. (Alternatively, you could set width=100%)
+            flex-basis: 100%;
         }
     }
 
     // bloom-vertical-align should be on the translation group
-    .bloom-vertical-align-top {
-        .bloom-editable {
-            justify-content: flex-start;
-            p {
-                justify-content: flex-start;
-            }
-        }
+    .bloom-vertical-align-top .bloom-editable {
+        align-items: flex-start;
     }
 
-    .bloom-vertical-align-center {
-        .bloom-editable {
-            justify-content: center;
-            p {
-                justify-content: center;
-            }
-        }
+    .bloom-vertical-align-center .bloom-editable {
+        align-items: center;
     }
 
-    .bloom-vertical-align-bottom {
-        .bloom-editable {
-            justify-content: flex-end;
-            p {
-                justify-content: flex-end;
-            }
-        }
+    .bloom-vertical-align-bottom .bloom-editable {
+        align-items: flex-end;
     }
 }
