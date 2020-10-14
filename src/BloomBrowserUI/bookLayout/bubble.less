@@ -260,6 +260,7 @@
 }
 
 // Set vertical alignment to center
+// Working prototype using flexboxes.
 .bloom-imageContainer .bloom-textOverPicture[data-bubble] {
     // Note: Needs a bit of specificity to beat display: block rule in langVisibility.css
     // However, also need to make sure you don't accidentall change display: none to display: flex
@@ -303,3 +304,49 @@
         align-items: flex-end;
     }
 }
+
+// // Set vertical alignment to center
+// // Using display: table approach.
+// .bloom-imageContainer .bloom-textOverPicture[data-bubble] {
+//     // Note: Needs a bit of specificity to beat display: block rule in langVisibility.css
+//     // However, also need to make sure you don't accidentall change display: none to display: flex
+//     .bloom-editable.bloom-visibility-code-on,
+//     .bloom-editable.bloom-visibility-user-on {
+//         display: table;
+
+//         color: blue;
+
+//         // Vertical alignment
+//         // Note: If the flex-container is much larger than the space required for the flex-items,
+//         //       there will be extra space inserted between the items (paragraphs)
+//         //align-items: center;
+
+//         // Paragraphs are the expected flex-items
+//         p {
+//             // Set to 100% so that two paragraphs can't share a line in the flex layout
+//             display: table-row;
+//             vertical-align: middle;
+//             //width: 100%;
+//         }
+//     }
+
+//     // bloom-vertical-align should be on the translation group
+//     .bloom-vertical-align-top .bloom-editable {
+//         //align-items: flex-start;
+
+//         p {
+//             vertical-align: top;
+//         }
+//     }
+
+//     // .bloom-vertical-align-center .bloom-editable {
+//     //     align-items: center;
+//     // }
+
+//     .bloom-vertical-align-bottom .bloom-editable {
+//         //align-items: flex-end;
+//         p {
+//             vertical-align: bottom;
+//         }
+//     }
+// }
