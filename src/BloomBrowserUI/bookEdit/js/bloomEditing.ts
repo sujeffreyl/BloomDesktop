@@ -13,7 +13,7 @@ import { setupOrigami, cleanupOrigami } from "./origami";
 import theOneLocalizationManager from "../../lib/localizationManager/localizationManager";
 import StyleEditor from "../StyleEditor/StyleEditor";
 import OverflowChecker from "../OverflowChecker/OverflowChecker";
-import BloomField from "../bloomField/BloomField";
+import BloomField, { FFSelection } from "../bloomField/BloomField";
 import BloomNotices from "./bloomNotices";
 import BloomSourceBubbles from "../sourceBubbles/BloomSourceBubbles";
 import BloomHintBubbles from "./BloomHintBubbles";
@@ -854,46 +854,45 @@ export function SetupElements(container: HTMLElement) {
         }
     });
 
-    loadLongpressInstructions($(container).find(".bloom-editable"));
+    const editableJQuery = $(container).find(".bloom-editable");
+
+    loadLongpressInstructions(editableJQuery);
 
     //When we do a CTRL+A DEL, FF leaves us with a <br></br> at the start. When the first key is then pressed,
     //a blank line is shown and the letter pressed shows up after that.
     //This detects that situation when we type the first key after the deletion, and first deletes the <br></br>.
-    $(container)
-        .find(".bloom-editable")
-        .keypress(event => {
-            // this is causing a worse problem, (preventing us from typing empty lines to move the start of the
-            // text down), so we're going to live with the empty space for now.
-            // TODO: perhaps we can act when the DEL or Backspace occurs and then detect this situation and clean it up.
-            //         if ($(event.target).text() == "") { //NB: the browser inspector shows <br></br>, but innerHTML just says "<br>"
-            //            event.target.innerHTML = "";
-            //        }
-        });
+    editableJQuery.keypress(event => {
+        // this is causing a worse problem, (preventing us from typing empty lines to move the start of the
+        // text down), so we're going to live with the empty space for now.
+        // TODO: perhaps we can act when the DEL or Backspace occurs and then detect this situation and clean it up.
+        //         if ($(event.target).text() == "") { //NB: the browser inspector shows <br></br>, but innerHTML just says "<br>"
+        //            event.target.innerHTML = "";
+        //        }
+    });
     //This detects that situation when we do CTRL+A and then type a letter, instead of DEL
-    $(container)
-        .find(".bloom-editable")
-        .keyup(function(event) {
-            //console.log(event.target.innerHTML);
-            // If they pressed a letter instead of DEL, we get this case:
-            //NB: the browser inspector shows <br></br>, but innerHTML just says "<br>"
-            if ($(event.target).find("#formatButton").length === 0) {
-                // they have also deleted the formatButton, so put it back in
+    editableJQuery.keyup(function(event) {
+        //console.log(event.target.innerHTML);
+        // If they pressed a letter instead of DEL, we get this case:
+        //NB: the browser inspector shows <br></br>, but innerHTML just says "<br>"
+        if ($(event.target).find("#formatButton").length === 0) {
+            // they have also deleted the formatButton, so put it back in
 
-                // REVIEW: this shows that we're doing the attaching on the first character entered,
-                // even though it appears the editor was already attached.
-                // So we actually attach twice. That's ok, the editor handles that, but I don't know why
-                // we're passing the if, and it could be improved.
-                // console.log('attaching');
-                if (
-                    $(this).closest(".bloom-userCannotModifyStyles").length ===
-                    0
-                )
-                    editor.AttachToBox(this);
-            } else {
-                // already have a format cog, better make sure it's in the right place
-                editor.AdjustFormatButton(this);
-            }
-        });
+            // REVIEW: this shows that we're doing the attaching on the first character entered,
+            // even though it appears the editor was already attached.
+            // So we actually attach twice. That's ok, the editor handles that, but I don't know why
+            // we're passing the if, and it could be improved.
+            // console.log('attaching');
+            if ($(this).closest(".bloom-userCannotModifyStyles").length === 0)
+                editor.AttachToBox(this);
+        } else {
+            // already have a format cog, better make sure it's in the right place
+            editor.AdjustFormatButton(this);
+        }
+    });
+
+    editableJQuery.each((dummy, element) => {
+        element.addEventListener("keydown", fixUpDownArrowEventHandler);
+    });
 
     // make any added text-over-picture bubbles draggable and clickable
     if (theOneBubbleManager) {
@@ -932,6 +931,141 @@ export function SetupElements(container: HTMLElement) {
 
     AddXMatterLabelAfterPageLabel(container);
     ConstrainContentsOfPageLabel(container);
+}
+
+function fixUpDownArrowEventHandler(keyEvent: KeyboardEvent) {
+    // This should be in a keydown event, not a keyup event.
+    // If you use keyup, the selection will already have changed by the time you get the event.
+    // But we would like to know the selection before pressing the arrow key.
+    console.log("keyCode = " + keyEvent.key);
+
+    // Avoid modifying the keydown behavior by returning early unless it's the specific problem case
+    if (keyEvent.key !== "ArrowUp" && keyEvent.key !== "ArrowDown") {
+        // Problem only happens if flexbox.
+        return;
+    }
+
+    const targetElem = keyEvent.target as Element;
+    if (!targetElem) {
+        return;
+    }
+
+    const style = window.getComputedStyle(targetElem);
+    if (style.display !== "flex") {
+        // Problem only happens if the bloom-editable is a flexbox.
+        console.log("SKIP - Not a flexbox.");
+        return;
+    }
+
+    const sel = window.getSelection() as FFSelection;
+    if (!sel) {
+        return;
+    }
+
+    if (keyEvent.key === "ArrowUp") {
+        // Limit it to text nodes
+        if (sel.anchorNode?.nodeType !== Node.TEXT_NODE) {
+            console.log("SKIP - Not a text node.");
+            console.log("NodeType = " + sel.anchorNode?.nodeType);
+            return;
+        }
+
+        // Limit it to text nodes inside paragraphs, for now.
+        // Not really clear what should happen if it's not a paragraph,
+        // or how we even arrive at that hypothetical state.
+        const elem = sel.anchorNode.parentElement;
+        if (elem?.tagName !== "P") {
+            console.log("SKIP - Not a paragraph.");
+            return;
+        }
+
+        if (sel.anchorOffset !== 0) {
+            // TODO: Theoretically, you could intercept anything on the first (or last) line too.
+            // Not sure how to detect that. One idea is to put every character into its own span,
+            // and then check offsetTop for each of them.
+            console.log("SKIP - Offset not at beginning");
+            return;
+        }
+    } else {
+        // Down arrow
+        if (sel.anchorNode?.nodeType === Node.ELEMENT_NODE) {
+            // If you're at the end of a paragraph and press down,
+            // the anchorNode should be the p element, not its text node.
+            const elem = sel.anchorNode! as Element;
+            if (elem.tagName !== "P") {
+                console.log("elem is not a paragraph.");
+                return;
+            }
+
+            // Now we are guaranteed to be looking at the bloom -editable.
+
+            if (sel.anchorOffset < sel.anchorNode.childNodes.length - 1) {
+                console.log("SKIP - Offset of ElementNode not at end");
+                return;
+            }
+        } else if (sel.anchorNode?.nodeType === Node.TEXT_NODE) {
+            // Not really expected to happen, but we'll support it just in case...
+            if (sel.anchorOffset < sel.anchorNode.textContent!.length - 1) {
+                console.log("SKIP - Offset of TextNode not at end");
+                return;
+            }
+        } else {
+            // Completely unrecognized case - abort
+            return;
+        }
+    }
+
+    const direction = keyEvent.key === "ArrowUp" ? "backward" : "forward";
+
+    // ENHANCE: Figure out where the next spot in the line is.
+    //
+    // Ideally we should move it by a line, not a word, but line didn't work right.
+    // word isn't completely right either, but... good enough for now.
+    // line: moved it to offset 0 of the previous paragraph, even if preventDefault()
+    // lineboundary: Didn't do anything.
+    console.log(`moving ${direction} by 1 word.`);
+    sel.modify("move", direction, "word");
+
+    // const paragraph = elem as HTMLParagraphElement;
+    // const elemToMoveTo =
+    //     keyEvent.key === "ArrowUp"
+    //         ? paragraph.previousSibling
+    //         : paragraph.nextSibling;
+
+    // if (!elemToMoveTo) {
+    //     // It could already be at the end. That's fine, just return early.
+    //     return;
+    // }
+
+    // // TODO: Do we need to move to end of text node isntead?
+    // let nodeToMoveTo = elemToMoveTo;
+    // while (
+    //     nodeToMoveTo &&
+    //     nodeToMoveTo.nodeType !== Node.TEXT_NODE &&
+    //     nodeToMoveTo.hasChildNodes
+    // ) {
+    //     nodeToMoveTo = nodeToMoveTo.firstChild!;
+    // }
+
+    // const nextOffset =
+    //     nodeToMoveTo.nodeType !== Node.TEXT_NODE
+    //         ? nodeToMoveTo.childNodes.length - 1
+    //         : nodeToMoveTo.textContent!.length - 1;
+
+    // console.log(
+    //     `Calling setBase on ${nodeToMoveTo.parentElement?.tagName}, ${nextOffset}`
+    // );
+    // sel.setBaseAndExtent(
+    //     nodeToMoveTo,
+    //     nextOffset,
+    //     nodeToMoveTo,
+    //     nextOffset
+    // );
+
+    // Hmm, for some reason, after modifying the selection, now the default seems to work
+    // so now we need to prevent it in order to avoiding moving twice the desired amount.
+    console.log("preventDefault called.");
+    keyEvent.preventDefault();
 }
 
 function focusLastEditableTopBox(): boolean {

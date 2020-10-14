@@ -103,88 +103,6 @@ export default class BloomField {
         bloomEditableDiv: HTMLElement,
         ckeditor: CKEDITOR.editor
     ) {
-        bloomEditableDiv.addEventListener("keydown", keyEvent => {
-            // This should be in a keydown event, not a keyup event.
-            // If you use keyup, the selection will already have changed by the time you get the event.
-            // But we would like to know the selection before pressing the arrow key.
-            console.log("keyCode = " + keyEvent.key);
-
-            if (keyEvent.key !== "ArrowUp" && keyEvent.key !== "ArrowDown") {
-                return;
-            }
-
-            const style = window.getComputedStyle(bloomEditableDiv);
-            if (style.display !== "flex") {
-                return;
-            }
-            console.log("Flex display.");
-            const sel = window.getSelection() as FFSelection;
-            if (sel?.anchorOffset !== 0) {
-                // TODO: Theoretically, you could intercept anything on the first (or last) line too.
-                // Not sure how to detect that. One idea is to put every character into its own span,
-                // and then check offsetTop for each of them.
-                console.log("SKIP - Offset not 0");
-                return;
-            }
-
-            // TODO: Check the node type, whether it's a paragraph or something.
-
-            // line: moved it to offset 0 of the previous paragraph
-            // lineboundary: Doesn't do anything.
-            // word: Moved it to the offset 1 of the previous paragraph, which is odd too
-            // character: Moved it to some non-zero offset of the previous paragraph.
-            if (sel.anchorNode?.nodeType !== Node.TEXT_NODE) {
-                return;
-            }
-
-            const elem = sel.anchorNode.parentElement;
-            if (elem?.tagName !== "P") {
-                return;
-            }
-
-            // sel.modify("move", "backward", "word");
-
-            const paragraph = elem as HTMLParagraphElement;
-            const elemToMoveTo =
-                keyEvent.key === "ArrowUp"
-                    ? paragraph.previousSibling
-                    : paragraph.nextSibling;
-
-            if (!elemToMoveTo) {
-                // It could already be at the end. That's fine, just return early.
-                return;
-            }
-
-            // TODO: Do we need to move to end of text node isntead?
-            let nodeToMoveTo = elemToMoveTo;
-            while (
-                nodeToMoveTo &&
-                nodeToMoveTo.nodeType !== Node.TEXT_NODE &&
-                nodeToMoveTo.hasChildNodes
-            ) {
-                nodeToMoveTo = nodeToMoveTo.firstChild!;
-            }
-
-            const nextOffset =
-                nodeToMoveTo.nodeType !== Node.TEXT_NODE
-                    ? nodeToMoveTo.childNodes.length - 1
-                    : nodeToMoveTo.textContent!.length - 1;
-
-            console.log(
-                `Calling setBase on ${nodeToMoveTo.parentElement?.tagName}, ${nextOffset}`
-            );
-            sel.setBaseAndExtent(
-                nodeToMoveTo,
-                nextOffset,
-                nodeToMoveTo,
-                nextOffset
-            );
-
-            // Hmm, for some reason, after modifying the selection, now the default seems to work
-            // so now we need to prevent it in order to avoiding moving twice the desired amount.
-            console.log("preventDefault called.");
-            keyEvent.preventDefault();
-        });
         ckeditor.on("key", event => {
             if (event.data.keyCode === CKEDITOR.SHIFT + 13) {
                 BloomField.InsertLineBreak();
@@ -722,7 +640,7 @@ enum CursorPosition {
     start,
     end
 }
-interface FFSelection extends Selection {
+export interface FFSelection extends Selection {
     //This is nonstandard, but supported by firefox. So we have to tell typescript about it
     modify(alter: string, direction: string, granularity: string): Selection;
 }
