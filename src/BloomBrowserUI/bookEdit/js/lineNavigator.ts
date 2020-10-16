@@ -62,7 +62,7 @@ class LineNavigator {
                 // When the cursor is automatically set to the 1st char when loaded, this can happen.
                 // It can also sometimes happen if you navigate in a certain way to the end of a 1-line paragraph
                 // e.g., navigate to the front of the paragraph, then down arrow (takes you to the end), then press up arrow (bug repros)
-                this.log("TODO: Implement me (elementNode)");
+                console.log("TODO: Implement me (elementNode)");
                 return;
             } else {
                 // Completely unrecognized case - abort
@@ -85,80 +85,103 @@ class LineNavigator {
             nodeType === Node.TEXT_NODE,
             "textNode was not valid. nodeType: " + nodeType
         );
-        const oldTextNode = sel.anchorNode!;
-        const oldIndex: number = sel.anchorOffset;
-
-        // TODO: Need to make talking books work.
+        const oldAnchor = new Anchor(sel.anchorNode!, sel.anchorOffset);
 
         // Limit it to text nodes inside paragraphs, for now.
         // Not really clear what should happen if it's not a paragraph,
         // or how we even arrive at that hypothetical state.
-        const oldElement = oldTextNode.parentElement;
-        if (oldElement?.tagName !== "P") {
-            this.log(
-                "SKIP - Not a paragraph. tagName = " + oldElement?.tagName
-            );
+        const oldElement = oldAnchor.node.parentElement;
+        if (!oldElement) {
+            this.log("SKIP - oldElement was null.");
             return;
         }
 
-        const { offsets, lineStartIndices } = this.analyze(oldElement);
+        const oldParagraph = oldElement.closest("p");
+        if (!oldParagraph) {
+            this.log("SKIP - closestParagraph not found.");
+            return;
+        }
+
+        const oldIndexFromStart = oldAnchor.convertToIndexFromStart(
+            oldParagraph
+        );
+        if (oldIndexFromStart === null) {
+            this.log("ABORT - oldIndexFromStart is null.");
+            return;
+        }
+
+        const { offsets, lineStartIndices } = this.analyze(oldParagraph);
+        this.log("lineStarts: " + JSON.stringify(lineStartIndices));
 
         if (direction === "up") {
-            if (!this.isOnFirstLine(oldIndex, lineStartIndices)) {
+            if (!this.isOnFirstLine(oldIndexFromStart, lineStartIndices)) {
                 this.log(
-                    `SKIP - Offset ${oldIndex} not on first line (ending at ${lineStartIndices[1]})`
+                    `SKIP - Index ${oldIndexFromStart} not on first line (ending at ${lineStartIndices[1]})`
                 );
                 return;
             } else {
-                this.log(`Continue - Offset ${oldIndex} is on first line`);
+                this.log(
+                    `Continue - Index ${oldIndexFromStart} is on first line`
+                );
             }
         } else {
-            if (!this.isOnLastLine(oldIndex, lineStartIndices)) {
+            if (!this.isOnLastLine(oldIndexFromStart, lineStartIndices)) {
                 this.log(
-                    `SKIP - Offset ${oldIndex} not on last line (starting at ${
+                    `SKIP - Index ${oldIndexFromStart} not on last line (starting at ${
                         lineStartIndices[lineStartIndices.length - 1]
                     })`
                 );
                 return;
             } else {
-                this.log(`Continue - Offset ${oldIndex} is on last line`);
+                this.log(
+                    `Continue - Index ${oldIndexFromStart} is on last line`
+                );
             }
         }
 
+        const targetX = this.getCurrentX(oldIndexFromStart, offsets);
+
+        const anchor = this.getNewLocation(direction, oldParagraph, targetX);
+
+        if (!anchor) {
+            this.log("ABORT - Could not determine anchor");
+            return;
+        }
+
+        this.setSelectionTo(sel, anchor.node, anchor.offset);
+
+        // Hmm, for some reason, after modifying the selection, now the default seems to work
+        // so now we need to prevent it in order to avoiding moving twice the desired amount.
+        this.log("preventDefault called.");
+        event.preventDefault();
+    }
+
+    private getNewLocation(
+        direction: "up" | "down",
+        oldParagraph: HTMLParagraphElement,
+        targetX: number
+    ): Anchor | null {
         const sibling =
             direction === "up"
-                ? oldElement.previousSibling
-                : oldElement.nextSibling;
+                ? oldParagraph.previousSibling
+                : oldParagraph.nextSibling;
         if (!sibling) {
             this.log("SKIP - sibling was null");
-            return;
+            return null;
         }
 
-        const newTextNode =
-            direction === "up"
-                ? this.getLastTextNode(sibling)
-                : this.getFirstTextNode(sibling);
-        if (!newTextNode) {
-            this.log("SKIP - targetNode not determined");
-            return;
-        }
-        if (newTextNode.nodeType !== Node.TEXT_NODE) {
-            this.log(
-                "SKIP - Unexpected targetNode.nodeType: " +
-                    newTextNode.nodeValue
-            );
-            return;
+        const siblingElement =
+            sibling.nodeType === Node.TEXT_NODE
+                ? sibling.parentElement!
+                : (sibling as Element);
+        const newParagraph = siblingElement.closest("p");
+        if (!newParagraph) {
+            this.log("SKIP - newParagraph not found.");
+            return null;
         }
 
-        // Determine the new offset
-        const targetX = this.getCurrentOffsetX(oldIndex, offsets);
-        const newParentElement = newTextNode.parentElement;
-
-        if (!newParentElement) {
-            this.log("SKIP - newParentElement is null.");
-            return;
-        }
-        const newAnalysis = this.analyze(newParentElement);
+        console.log("Analyzing newParagraph: " + newParagraph.outerHTML);
+        const newAnalysis = this.analyze(newParagraph);
         const newIndex = this.getIndexClosestToTargetX(
             direction,
             targetX,
@@ -167,15 +190,13 @@ class LineNavigator {
 
         if (newIndex === null) {
             this.log("SKIP - newIndex is null.");
-            return;
+            return null;
         }
 
-        this.setSelectionTo(sel, newTextNode, newIndex);
+        console.log("newIndex = " + newIndex);
 
-        // Hmm, for some reason, after modifying the selection, now the default seems to work
-        // so now we need to prevent it in order to avoiding moving twice the desired amount.
-        this.log("preventDefault called.");
-        event.preventDefault();
+        const anchor = this.getAnchorAtIndex(newParagraph, newIndex);
+        return anchor;
     }
 
     private setSelectionTo(sel: Selection, node: Node, offset: number): void {
@@ -206,7 +227,8 @@ class LineNavigator {
         };
     }
 
-    private getOffsetsPerChar(element: Element): IOffsetInfo[] {
+    private getOffsetsPerChar(element: Element): ICharPosInfo[] {
+        // Note: If perf happesn to be an issue, this is the most expensive function perf-wise.
         if (!element.parentElement) {
             return [];
         }
@@ -228,19 +250,29 @@ class LineNavigator {
 
         const markedSpans = clone.querySelectorAll("span.temp");
         if (markedSpans.length <= 0) {
+            this.log(`markedSpans.length = ${markedSpans.length}`);
             return [];
         }
 
         // Actually measure the position of each character
-        const offsets: IOffsetInfo[] = [];
+        const posInfos: ICharPosInfo[] = [];
         for (let i = 0; i < markedSpans.length; ++i) {
             const span = markedSpans[i] as HTMLElement;
-            const offsetInfo = {
-                left: span.offsetLeft,
-                right: span.offsetLeft + span.offsetWidth,
-                top: span.offsetTop
+
+            // Note: span.offsetLeft is relative to the immediate parent,
+            // whereas getBoundingClientRect() is relative to the viewport.
+            // That means the getBoundingClientRect() results are more easily compared.
+            const bounds = span.getBoundingClientRect();
+            const charPosInfo = {
+                index: i,
+                char: span.innerText,
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top
             };
-            offsets.push(offsetInfo);
+
+            this.log(`Processing: ${JSON.stringify(charPosInfo)}`);
+            posInfos.push(charPosInfo);
         }
 
         // Cleanup
@@ -249,89 +281,111 @@ class LineNavigator {
         const removed = element.parentElement.removeChild(lastChild);
         console.assert(removed, "removeChild failed.");
 
-        return offsets;
+        return posInfos;
     }
 
-    // This version will mess up your Selection object.
-    private getOffsetsPerCharUnsafe(element: Element): IOffsetInfo[] {
-        const originalHtml = element.innerHTML;
+    // // This version will mess up your Selection object.
+    // private getOffsetsPerCharUnsafe(element: Element): IOffsetInfo[] {
+    //     const originalHtml = element.innerHTML;
 
-        this.insertMarkingSpansAroundEachChar(element);
+    //     this.insertMarkingSpansAroundEachChar(element);
 
-        const markedSpans = element.querySelectorAll("span.temp");
-        if (markedSpans.length <= 0) {
-            return [];
-        }
+    //     const markedSpans = element.querySelectorAll("span.temp");
+    //     if (markedSpans.length <= 0) {
+    //         return [];
+    //     }
 
-        const offsets: IOffsetInfo[] = [];
-        for (let i = 0; i < markedSpans.length; ++i) {
-            const span = markedSpans[i] as HTMLElement;
-            const offsetInfo = {
-                left: span.offsetLeft,
-                right: span.offsetHeight + span.offsetWidth,
-                top: span.offsetTop
-            };
-            offsets.push(offsetInfo);
-        }
+    //     const offsets: IOffsetInfo[] = [];
+    //     for (let i = 0; i < markedSpans.length; ++i) {
+    //         const span = markedSpans[i] as HTMLElement;
+    //         const offsetInfo = {
+    //             left: span.offsetLeft,
+    //             right: span.offsetHeight + span.offsetWidth,
+    //             top: span.offsetTop
+    //         };
+    //         offsets.push(offsetInfo);
+    //     }
 
-        element.innerHTML = originalHtml;
-        return offsets;
-    }
+    //     element.innerHTML = originalHtml;
+    //     return offsets;
+    // }
 
-    private getLineStartIndices(offsets: IOffsetInfo[]): number[] {
+    private getLineStartIndices(offsets: ICharPosInfo[]): number[] {
+        //this.log("offsets: " + JSON.stringify(offsets));
         let prevOffsetTop: number = Number.NEGATIVE_INFINITY;
+        let prevOffsetLeft: number = Number.POSITIVE_INFINITY;
         const startIndices: number[] = [];
         for (let i = 0; i < offsets.length; ++i) {
-            const offsetTop = offsets[i].top;
+            const offset = offsets[i];
             // this.log(`${i}: ${offsetTop}`);
 
+            // Note: Now we rely exclusively on horizontal.
+            //   Vertical can differ slightly if some elements are nested in more elements than others.
             // Keep track of the offsetTop of each line.
             // When we encounter a span with a greater offsetTop than the previous,
             // that's how we'll know we are at a new line.
-            if (prevOffsetTop < offsetTop) {
-                prevOffsetTop = offsetTop;
+            const isVerticalPosChanged = prevOffsetTop < offset.top;
+
+            // TODO: Cleanup
+            // // Alternatively, if the horizontal offset has been reset, mark that as a new line too.
+            // // (When we are processing spans inside the talking book spans, the offsetTop is always 0) :(
+            // const isHorizontalPosReset = this.isLeftToRightLang
+            //     ? offset.left <= prevOffsetLeft
+            //     : offset.left >= prevOffsetLeft;
+
+            if (isVerticalPosChanged) {
                 startIndices.push(i);
             }
+
+            prevOffsetLeft = offset.left;
+            prevOffsetTop = offset.top;
         }
 
         return startIndices;
     }
 
-    private isOnFirstLine(anchorOffset: number, lineStartIndices: number[]) {
+    private isOnFirstLine(index: number, lineStartIndices: number[]) {
         if (lineStartIndices.length <= 0) {
             return false;
         } else if (lineStartIndices.length === 1) {
             // Apparently only one line. So yes, this is on the first line.
             console.assert(
-                anchorOffset >= lineStartIndices[0],
-                `anchorOffset (${anchorOffset}) was invalid. Expected >= ${lineStartIndices[0]}`
+                index >= lineStartIndices[0],
+                `anchorOffset (${index}) was invalid. Expected >= ${lineStartIndices[0]}`
             );
             return true;
         }
 
-        return anchorOffset < lineStartIndices[1];
+        // Note: one awkward thing is that if the cursor is at the very end of the first line,
+        // it has the same offset as if it were at the very beginning of the 2nd line.
+        // Can't distinguish these cases. :(
+        // For now, we'll live with allowing the default behavior if you're at the end of the 1st line.
+        return index < lineStartIndices[1];
     }
 
-    private isOnLastLine(anchorOffset: number, lineStartIndices: number[]) {
+    private isOnLastLine(index: number, lineStartIndices: number[]) {
         if (lineStartIndices.length <= 0) {
             return false;
         }
 
         const lastStartIndex = lineStartIndices[lineStartIndices.length - 1];
-        return anchorOffset >= lastStartIndex;
+        return index >= lastStartIndex;
     }
 
-    private getCurrentOffsetX(anchorIndex: number, offsets: IOffsetInfo[]) {
+    // Index should be the index from the start of the shared ancestor,
+    // as opposed to the index from the start of the text node.
+    private getCurrentX(index: number, offsets: ICharPosInfo[]) {
+        this.log("getCurrentX called with anchorIndex = " + index);
         // Note that it's actually ok/expected for anchorOffset to be equal to length
         // (Normally, an array index must be strictly less than).
         // This indicates that the cursor is to the right of the last character.
         console.assert(
-            0 <= anchorIndex && anchorIndex <= offsets.length,
-            `anchorOffset should be in range [0, ${offsets.length}] but was: ${anchorIndex}`
+            0 <= index && index <= offsets.length,
+            `anchorOffset should be in range [0, ${offsets.length}] but was: ${index}`
         );
 
-        if (anchorIndex < offsets.length) {
-            return offsets[anchorIndex].left;
+        if (index < offsets.length) {
+            return offsets[index].left;
         } else {
             return offsets[offsets.length - 1].right;
         }
@@ -355,29 +409,39 @@ class LineNavigator {
                 : this.getFirstLineOffsets(targetAnalysis);
 
         this.log("targetX = " + targetX);
-        let bestIndex: number | undefined = undefined;
+        console.log(
+            "Relevant offsets: " + relevantOffsets.map(x => x.char).join("")
+        );
+        let bestIndex = 0;
         let lastDelta = Number.POSITIVE_INFINITY;
         for (let i = 0; i < relevantOffsets.length; ++i) {
             const left = relevantOffsets[i].left;
             const delta = Math.abs(left - targetX);
-            this.log(`${i}: ${left} - ${targetX} = ${delta}`);
+            this.log(
+                `${i} (${relevantOffsets[i].char}): ${left} - ${targetX} = ${delta}`
+            );
 
             // We assume that offsets is always arranged left to right.
             // That means once our absolute error starts increasing, there's no point going any further.
             if (delta > lastDelta) {
-                this.log(`BREAK because log > 0`);
+                this.log(`BREAK because ${delta} > ${lastDelta}`);
                 bestIndex = i - 1;
                 break;
             } else {
                 lastDelta = delta;
             }
-        }
 
-        if (bestIndex === undefined) {
-            bestIndex = relevantOffsets.length;
+            // On the last char, need to decide what to assign to bestIndex
+            if (i === relevantOffsets.length - 1) {
+                // Need to decide whether to return to the left or right of the last char
+                const deltaEnd = Math.abs(relevantOffsets[i].right - targetX);
+                bestIndex = delta < deltaEnd ? i : i + 1;
+                break;
+            }
         }
 
         if (direction === "up") {
+            this.log("bestIndex (relative to last line): " + bestIndex);
             // In this case, bestIndex is currently relative to start of the last line.
             // We need to make it relative to the start of the whole text.
             bestIndex +=
@@ -389,7 +453,7 @@ class LineNavigator {
         return bestIndex;
     }
 
-    private getFirstLineOffsets(analysis: IAnalysis): IOffsetInfo[] {
+    private getFirstLineOffsets(analysis: IAnalysis): ICharPosInfo[] {
         if (analysis.lineStartIndices.length > 1) {
             return analysis.offsets.slice(0, analysis.lineStartIndices[1]);
         } else {
@@ -397,7 +461,7 @@ class LineNavigator {
         }
     }
 
-    private getLastLineOffsets(analysis: IAnalysis): IOffsetInfo[] {
+    private getLastLineOffsets(analysis: IAnalysis): ICharPosInfo[] {
         if (analysis.lineStartIndices.length > 1) {
             const numLines = analysis.lineStartIndices.length;
             const lastStartIndex = analysis.lineStartIndices[numLines - 1];
@@ -408,14 +472,21 @@ class LineNavigator {
     }
 
     private insertMarkingSpansAroundEachChar(element: Element): void {
+        // ENHANCE: In the 1st call to this function, you only need markingSpans up to oldIndexFromStart.
         const initialChildNodes = Array.from(element.childNodes);
         initialChildNodes.forEach(childNode => {
             if (childNode.nodeType === Node.TEXT_NODE) {
                 const chars = Array.from(childNode.textContent!);
-                const newInnerHtml = chars
-                    .map(c => `<span class="temp">${c}</span>`)
-                    .join("");
-                childNode.parentElement!.innerHTML = newInnerHtml;
+
+                chars.forEach(c => {
+                    const tempSpan = document.createElement("span");
+                    tempSpan.classList.add("temp");
+                    tempSpan.innerText = c;
+
+                    childNode.parentElement!.insertBefore(tempSpan, childNode);
+                });
+
+                childNode.parentElement!.removeChild(childNode);
             } else if (childNode.nodeType === Node.ELEMENT_NODE) {
                 // Recursion.
                 this.log(
@@ -428,47 +499,110 @@ class LineNavigator {
         });
     }
 
-    private getFirstTextNode(node: Node): Node | null {
-        return this.getFirstOrLastTextNode(node, "first");
+    // private getFirstTextNode(node: Node): Node | null {
+    //     return this.getFirstOrLastTextNode(node, "first");
+    // }
+
+    // // Returns the last text node among the node itself or its descendants.
+    // // Last = right-most, if you were to draw it as a tree structure with the root on top.
+    // // If no text node could be found, then null will be returned.
+    // private getLastTextNode(node: Node): Node | null {
+    //     return this.getFirstOrLastTextNode(node, "last");
+    // }
+
+    // private getFirstOrLastTextNode(
+    //     node: Node,
+    //     firstOrLast: "first" | "last"
+    // ): Node | null {
+    //     if (node.hasChildNodes()) {
+    //         const childNodes =
+    //             firstOrLast === "first"
+    //                 ? node.childNodes
+    //                 : Array.from(node.childNodes).reverse();
+
+    //         for (let i = 0; i < childNodes.length; ++i) {
+    //             const lastTextNodeOfChild = this.getLastTextNode(
+    //                 node.childNodes.item(i)
+    //             );
+    //             if (lastTextNodeOfChild) {
+    //                 return lastTextNodeOfChild;
+    //             }
+    //             // else, continue through the loop and see if the next child node has a text child
+    //         }
+
+    //         // Well, we made it through all the children without finding a text node.
+    //         // Guess we have to give up now.
+    //         return null;
+    //     } else {
+    //         if (node.nodeType === Node.TEXT_NODE) {
+    //             this.log("Found text node: " + node.textContent);
+    //             return node;
+    //         } else {
+    //             return null;
+    //         }
+    //     }
+    // }
+
+    private getAnchorAtIndex(node: Node, index: number): Anchor | null {
+        const val = this.getAnchorAtIndexHelper(node, index);
+        return val.anchor ?? null;
     }
 
-    // Returns the last text node among the node itself or its descendants.
-    // Last = right-most, if you were to draw it as a tree structure with the root on top.
-    // If no text node could be found, then null will be returned.
-    private getLastTextNode(node: Node): Node | null {
-        return this.getFirstOrLastTextNode(node, "last");
-    }
-
-    private getFirstOrLastTextNode(
+    // Either anchor or numCharsProcessed will be set, but not both and not neither
+    private getAnchorAtIndexHelper(
         node: Node,
-        firstOrLast: "first" | "last"
-    ): Node | null {
-        if (node.hasChildNodes()) {
-            const childNodes =
-                firstOrLast === "first"
-                    ? node.childNodes
-                    : Array.from(node.childNodes).reverse();
+        index: number
+    ): { anchor?: Anchor; numCharsProcessed?: number } {
+        if (node.nodeType === Node.TEXT_NODE) {
+            // Base Case
+            // FYI: TextNodes are always leaf nodes and don't have any childNodes
 
-            for (let i = 0; i < childNodes.length; ++i) {
-                const lastTextNodeOfChild = this.getLastTextNode(
-                    node.childNodes.item(i)
+            if (!node.textContent) {
+                return { numCharsProcessed: 0 };
+            }
+
+            const numCharsProcessed = this.setWithin(
+                index,
+                0,
+                node.textContent.length
+            );
+
+            if (numCharsProcessed === index) {
+                return {
+                    anchor: new Anchor(node, index)
+                };
+            } else {
+                return {
+                    numCharsProcessed
+                };
+            }
+        } else if (node.hasChildNodes()) {
+            let numCharsProcessed = 0;
+            for (let i = 0; i < node.childNodes.length; ++i) {
+                const childNode = node.childNodes.item(i);
+                const adjustedIndex = index - numCharsProcessed;
+                const val = this.getAnchorAtIndexHelper(
+                    childNode,
+                    adjustedIndex
                 );
-                if (lastTextNodeOfChild) {
-                    return lastTextNodeOfChild;
+                if (val.anchor) {
+                    // The final result was successfully found. Just propagate it up the stack.
+                    this.log("Returning anchor: " + val.anchor.offset);
+                    return val;
                 }
-                // else, continue through the loop and see if the next child node has a text child
+
+                // else, mark down the number of chars checked so far, then continue to the next child.
+                this.log(
+                    `Recursive call consumed ${val.numCharsProcessed!} chars.`
+                );
+                numCharsProcessed += val.numCharsProcessed!;
             }
 
             // Well, we made it through all the children without finding a text node.
             // Guess we have to give up now.
-            return null;
+            return { numCharsProcessed };
         } else {
-            if (node.nodeType === Node.TEXT_NODE) {
-                this.log("Found text node: " + node.textContent);
-                return node;
-            } else {
-                return null;
-            }
+            return { numCharsProcessed: 0 };
         }
     }
 
@@ -478,25 +612,82 @@ class LineNavigator {
         }
     }
 
-    // private setWithin(x: number, min: number, max: number): number {
-    //     console.assert(
-    //         min <= x && x <= max,
-    //         `x should be in range [${min}, ${max}] but was: ${x}`
-    //     );
-    //     x = Math.max(min, x);
-    //     x = Math.min(x, max);
-    //     return x;
-    // }
+    private setWithin(x: number, min: number, max: number): number {
+        x = Math.max(min, x);
+        x = Math.min(x, max);
+        return x;
+    }
+
+    private setAndAssertWithin(x: number, min: number, max: number): number {
+        console.assert(
+            min <= x && x <= max,
+            `x should be in range [${min}, ${max}] but was: ${x}`
+        );
+        return this.setWithin(x, min, max);
+    }
 }
 
 interface IAnalysis {
-    offsets: IOffsetInfo[];
+    offsets: ICharPosInfo[];
     lineStartIndices: number[];
 }
 
-interface IOffsetInfo {
-    // note: you could also record the index and character in here, if needed.
+interface ICharPosInfo {
+    index: number; // Not strictly needed. Just for debugging convenience.
+    char: string; // Not strictly needed. Just for debugging convenience.
     left: number;
     right: number;
     top: number;
+}
+
+export class Anchor {
+    public node: Node;
+    public offset: number;
+
+    public constructor(node: Node, offset: number) {
+        this.node = node;
+        this.offset = offset;
+    }
+
+    public convertToIndexFromStart(startElement: Element): number | null {
+        const val = this.convertToIndexFromStartHelper(startElement, 0);
+        return val.answer ?? null;
+    }
+
+    private convertToIndexFromStartHelper(
+        startNode: Node,
+        accumulator: number
+    ): { answer?: number; numCharsProcessed?: number } {
+        if (startNode === this.node) {
+            // Base Case
+            return {
+                answer: accumulator + this.offset
+            };
+        } else if (startNode.hasChildNodes()) {
+            let numCharsProcessed = 0;
+            for (let i = 0; i < startNode.childNodes.length; ++i) {
+                const child = startNode.childNodes.item(i);
+                const val = this.convertToIndexFromStartHelper(
+                    child,
+                    accumulator + numCharsProcessed
+                );
+
+                // Careful! answer can be 0, which evaluates to falsy.
+                if (val.answer !== undefined) {
+                    // The final result was successfully found. Just propagate it up the stack.
+                    return val;
+                }
+
+                // else, mark down the number of chars checked so far, then continue to the next child.
+                numCharsProcessed += val.numCharsProcessed!;
+            }
+
+            return { numCharsProcessed };
+        } else if (startNode.nodeType === Node.TEXT_NODE) {
+            const numCharsProcessed = startNode.textContent?.length ?? 0;
+            return { numCharsProcessed };
+        } else {
+            return { numCharsProcessed: 0 };
+        }
+    }
 }
