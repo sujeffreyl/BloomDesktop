@@ -1,13 +1,13 @@
 // This handler should be in a keydown event, not a keyup event.
 // If you use keyup, the selection will already have changed by the time you get the event.
 // But we would like to know the selection before pressing the arrow key.
-export function fixUpDownArrowEventHandler(keyEvent: KeyboardEvent) {
+export function fixUpDownArrowEventHandler(keyEvent: KeyboardEvent): void {
     const lineNav = new LineNavigator();
     lineNav.handleUpDownArrowsInFlexboxEditables(keyEvent);
 }
 
-class LineNavigator {
-    private debug: boolean = true;
+export class LineNavigator {
+    private debug: boolean = false;
 
     public constructor() {}
 
@@ -110,7 +110,8 @@ class LineNavigator {
             return;
         }
 
-        // const { offsets, lineStartIndices } = this.analyze(oldParagraph);
+        //this.printCharPosition(oldParagraph);
+        //const { offsets, lineStartIndices } = this.analyze(oldParagraph);
         // this.log("lineStarts: " + JSON.stringify(lineStartIndices));
         const analysis = this.analyzeCurrentPosition(
             direction,
@@ -198,7 +199,8 @@ class LineNavigator {
         }
 
         this.log("Analyzing newParagraph: " + newParagraph.outerHTML);
-        // const newAnalysis = this.analyze(newParagraph);
+        //const newAnalysis = this.analyze(newParagraph);
+        //this.printCharPosition(newParagraph);
         // const newIndex = this.getIndexClosestToTargetXOld(
         //     direction,
         //     targetX,
@@ -253,6 +255,68 @@ class LineNavigator {
         } else {
             console.log(`${prefix}ElementNode: ${(node as Element).outerHTML}`);
         }
+    }
+
+    public static printCharPositions(element: Element): void {
+        const myNav = new LineNavigator();
+        myNav.debug = true;
+
+        if (!element.parentElement) {
+            return;
+        }
+
+        // This method clones the element so that we don't directly modify the original element.
+        // The benefit is to avoid the selection changing when we modify the element's innerHTML.
+        // This allows us to avoid a huge hassle of figuring out the selection again, since not only
+        // is the selection object itself changed, but if you hold on to references of the original anchorNode,
+        // well those are no longer in the DOM anymore.
+        const clone = element.cloneNode(true) as Element;
+
+        // Append the clone into the parent so that it'll have the same width, styling, etc.
+        // FYI, I think it's unnecessary to make it invisible. Due to Javascript event loop,
+        // as long as we don't await stuff, it should be removed before the UI gets to re-render things
+        element.parentElement.appendChild(clone);
+
+        // Insert temporary inline elements around each character so we can measure their position
+        myNav.insertMarkingSpansAroundEachChar(clone);
+
+        const markedSpans = clone.querySelectorAll("span.temp");
+        if (markedSpans.length <= 0) {
+            return;
+        }
+
+        // Actually measure the position of each character
+        for (let i = 0; i < markedSpans.length; ++i) {
+            const span = markedSpans[i] as HTMLElement;
+
+            // Note: span.offsetLeft is relative to the immediate parent,
+            // whereas getBoundingClientRect() is relative to the viewport.
+            // That means the getBoundingClientRect() results are more easily compared.
+            const bounds = span.getBoundingClientRect();
+            // const charPosInfo = {
+            //     index: i,
+            //     char: span.innerText,
+            //     left: bounds.left,
+            //     right: bounds.right,
+            //     top: bounds.top
+            // };
+
+            console.log(
+                `index:\t${i}\tchar:\t${span.innerText}\tleft:\t${Math.round(
+                    bounds.left
+                )}\tright:\t${Math.round(bounds.right)}\ttop:\t${Math.round(
+                    bounds.top
+                )}`
+            );
+            //this.log(`Processing: ${JSON.stringify(charPosInfo)}`);
+            //posInfos.push(charPosInfo);
+        }
+
+        // Cleanup
+        const updatedChildNodes = element.parentElement.childNodes;
+        const lastChild = updatedChildNodes[updatedChildNodes.length - 1];
+        const removed = element.parentElement.removeChild(lastChild);
+        console.assert(removed, "removeChild failed.");
     }
 
     private analyze(element: Element) {
@@ -403,7 +467,7 @@ class LineNavigator {
                 indexWithinNode: index
             };
         };
-        this.debug = false;
+        //this.debug = false;
         const val1 =
             direction === "up"
                 ? this.doActionAtIndex(clone, 0, action, "\t\t")
@@ -413,7 +477,7 @@ class LineNavigator {
             return undefined;
         }
 
-        this.debug = true;
+        //this.debug = true;
         const val2 = this.doActionAtIndex(clone, index, action, "\t\t");
 
         if (!val2.actionPerformed && !val2.isAtEndOfNode) {
@@ -472,6 +536,8 @@ class LineNavigator {
         const currentX = !val2.isAtEndOfNode ? position2.left : position2.right;
         const y1 = position1.top;
         const y2 = position2.top;
+
+        this.log(`y1=${y1} vs. y2=${y2}`);
 
         const isOnBoundary = this.isOnSameLine(y1, y2);
         return {
@@ -606,8 +672,18 @@ class LineNavigator {
             let lastDelta = Number.POSITIVE_INFINITY;
             let bestNode: Node | undefined; // Should stay undefined until we compute the right answer.
 
+            let numTimesInLoop = 0;
             const nodeStack: Node[] = [clone];
-            while (nodeStack.length >= 0) {
+            while (nodeStack.length > 0) {
+                if (this.debug) {
+                    ++numTimesInLoop;
+                    if (numTimesInLoop > 10000) {
+                        throw new Error(
+                            "probable infinite loop. nodeStack.length = " +
+                                nodeStack.length
+                        );
+                    }
+                }
                 const current = nodeStack.pop();
 
                 if (!current) {
@@ -721,6 +797,9 @@ class LineNavigator {
                     // Just ignore leaf nodes with other attribute types.
                     continue;
                 }
+
+                // // TODO: Get rid of me.
+                // break;
             }
 
             // This points into our temp node, but we need to point into our original node...
@@ -1075,14 +1154,14 @@ export class Anchor {
         startNode: Node,
         accumulator: number
     ): { answer?: number; numCharsProcessed?: number } {
-        console.log(
-            "convertToIndexFromStartHelper called, accumulator = " + accumulator
-        );
-        LineNavigator.printNode(startNode, "[startNode]");
+        // console.log(
+        //     "convertToIndexFromStartHelper called, accumulator = " + accumulator
+        // );
+        //LineNavigator.printNode(startNode, "[startNode]");
 
         if (startNode === this.node) {
             // Base Case
-            console.log("BASE CASE reached.");
+            //console.log("BASE CASE reached.");
             return {
                 answer: accumulator + this.offset
             };
