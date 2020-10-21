@@ -55,17 +55,21 @@ fdescribe("LineNavigator Tests", () => {
 
     function runScenarioTest(
         key: "ArrowUp" | "ArrowDown",
-        scenario: 1 | 2,
+        scenario: 1 | 2 | 3,
         getAnchorNode: () => Node, // Needs to be a function so that it can be deferred until after setup.
         initialOffset: number,
         expectedText: string,
         talkingBookSetting: "NoAudio" | "Sentence"
     ) {
         const setup = () => {
-            const editable =
-                scenario === 1
-                    ? setupScenario1(talkingBookSetting)
-                    : setupScenario2(talkingBookSetting);
+            let editable: HTMLElement;
+            if (scenario === 1) {
+                editable = setupScenario1(talkingBookSetting);
+            } else if (scenario === 2) {
+                editable = setupScenario2(talkingBookSetting);
+            } else {
+                editable = setupScenario3(talkingBookSetting);
+            }
 
             // Optional - Make sure the layout got setup properly.
             const styleInfo = window.getComputedStyle(editable);
@@ -220,6 +224,30 @@ fdescribe("LineNavigator Tests", () => {
         } else if (talkingBookSetting === "Sentence") {
             p1Inner = `<span id="s1" class="audio-sentence">${phrase1}</span> <span id="s2a" class="audio-sentence">${phrase2A}</span> <span id="s2b" class="audio-sentence">${phrase2B}</span>`;
             p2Inner = `<span id="s3a" class="audio-sentence">3A3A.</span> <span id="s3b" class="audio-sentence">3B3B.</span> <span id="s4" class="audio-sentence">444444444444.</span>`;
+        } else {
+            throw new Error(
+                "Unrecognized talkingBookSetting: " + talkingBookSetting
+            );
+        }
+
+        return setupFromParagraphInnerHtml([p1Inner, p2Inner], isFlex);
+    }
+
+    function setupScenario3(
+        talkingBookSetting: "NoAudio" | "Sentence",
+        isFlex: boolean = true
+    ) {
+        const p1Text = "1111";
+        const p2Text = "2222.";
+
+        let p1Inner: string;
+        let p2Inner: string;
+        if (talkingBookSetting === "NoAudio") {
+            p1Inner = p1Text;
+            p2Inner = p2Text;
+        } else if (talkingBookSetting === "Sentence") {
+            p1Inner = `<span id="s1" class="audio-sentence">${p1Text}</span>`;
+            p2Inner = `<span id="s2" class="audio-sentence">${p2Text}</span>`;
         } else {
             throw new Error(
                 "Unrecognized talkingBookSetting: " + talkingBookSetting
@@ -557,14 +585,22 @@ fdescribe("LineNavigator Tests", () => {
             });
 
             it(`Given ArrowDown on TalkingBookSentenceSplit Scenario2, cursor on Line 2, Span 2B end, moves one line down to Line 3`, () => {
-                const expected = "B."; // The space after span 3B
+                const expected = "B.";
                 runScenario2Test(kArrowDown, getS2b, 4, expected, kSentence);
+            });
+        });
+
+        describe("Scenario3 onBoundary tests", () => {
+            it(`Given ArrowDown on ElementNode, moves one line down`, () => {
+                const getNode = () => document.getElementById("p1")!;
+                const expected = "2222.";
+                runScenarioTest(kArrowDown, 3, getNode, 0, expected, kSentence);
             });
         });
     });
 });
 
-describe("Anchor Tests", () => {
+fdescribe("Anchor Tests", () => {
     it("Given paragraph with no spans and cursor at start, returns offset as indexFromStart", () => {
         const html = '<div class="bloom-editable"><p id="p1">S1. S2.</p></div>';
         setupElementFromHtml(html);
