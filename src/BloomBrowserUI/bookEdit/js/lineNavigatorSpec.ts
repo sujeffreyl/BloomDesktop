@@ -9,9 +9,10 @@ const kArrowDown = "ArrowDown";
 const kNoAudio = "NoAudio";
 const kSentence = "Sentence";
 
-fdescribe("LineNavigator Tests", () => {
+describe("LineNavigator Tests", () => {
     // Debugging tip: LineNavigator.printCharPositions(editable) can help you see if the test case is line-wrapping the way you want it to.
 
+    // Runs the test and notably, remembers to perform cleanup.
     function runLineNavTest(
         setup: () => HTMLElement,
         verify: () => void,
@@ -55,7 +56,7 @@ fdescribe("LineNavigator Tests", () => {
 
     function runScenarioTest(
         key: "ArrowUp" | "ArrowDown",
-        scenario: 1 | 2 | 3,
+        scenario: 1 | 2 | 3 | 4 | 5,
         getAnchorNode: () => Node, // Needs to be a function so that it can be deferred until after setup.
         initialOffset: number,
         expectedText: string,
@@ -67,8 +68,14 @@ fdescribe("LineNavigator Tests", () => {
                 editable = setupScenario1(talkingBookSetting);
             } else if (scenario === 2) {
                 editable = setupScenario2(talkingBookSetting);
-            } else {
+            } else if (scenario === 3) {
                 editable = setupScenario3(talkingBookSetting);
+            } else if (scenario === 4) {
+                editable = setupScenario4(talkingBookSetting);
+            } else if (scenario === 5) {
+                editable = setupScenario5(talkingBookSetting);
+            } else {
+                throw new Error("Unrecognized scenario: " + scenario);
             }
 
             // Optional - Make sure the layout got setup properly.
@@ -83,7 +90,7 @@ fdescribe("LineNavigator Tests", () => {
             );
 
             // Uncomment for help in debugging.
-            //LineNavigator.printCharPositions(editable);
+            // LineNavigator.printCharPositions(editable);
 
             setSelectionTo(getAnchorNode(), initialOffset);
 
@@ -154,19 +161,21 @@ fdescribe("LineNavigator Tests", () => {
 
     function verifySelection(
         selection: Selection | null,
-        anchorNode: Node,
-        offset: number
+        expectedNode: Node,
+        expectedOffset?: number
     ) {
         expect(selection).not.toBeNull();
         if (selection) {
             expect(selection.anchorNode).toEqual(
-                anchorNode,
+                expectedNode,
                 "AnchorNode does not match."
             );
-            expect(selection.anchorOffset).toEqual(
-                offset,
-                "anchorOffset does not match."
-            );
+            if (expectedOffset !== undefined) {
+                expect(selection.anchorOffset).toEqual(
+                    expectedOffset,
+                    "anchorOffset does not match."
+                );
+            }
         }
     }
 
@@ -233,6 +242,7 @@ fdescribe("LineNavigator Tests", () => {
         return setupFromParagraphInnerHtml([p1Inner, p2Inner], isFlex);
     }
 
+    // Scenario3 is designed to test a case where the selection is initially pointing to an element, rather than a text node
     function setupScenario3(
         talkingBookSetting: "NoAudio" | "Sentence",
         isFlex: boolean = true
@@ -255,6 +265,34 @@ fdescribe("LineNavigator Tests", () => {
         }
 
         return setupFromParagraphInnerHtml([p1Inner, p2Inner], isFlex);
+    }
+
+    // Scenario 4 tests mousing down into an empty paragraph
+    function setupScenario4(talkingBookSetting: "NoAudio" | "Sentence") {
+        if (talkingBookSetting !== "NoAudio") {
+            throw new Error("Not implemented.");
+        }
+        const pInnerHtmls = ["1111\n<br>", "<br>", "3333."];
+
+        return setupFromParagraphInnerHtml(pInnerHtmls, true);
+    }
+
+    function setupScenario5(talkingBookSetting: "NoAudio" | "Sentence") {
+        if (talkingBookSetting !== "NoAudio") {
+            throw new Error("Not implemented.");
+        }
+        const pInnerHtmls = [
+            "1111", // ends at 66px
+            "22222", // last 2 is from 63-72px. The LEFT edge is closer to 66.
+            "3333", // ends at 68px
+            "4444", // last 4 is from 59-68px. The right edge is closer to 68.
+            "555555555555 6666", // ends at 71px
+            "777 77 888888888888", // last 7 is from 69-78 px.  The LEFT edge is closer to 71.
+            "999999999999 0000", // ends at 71px
+            "1111 222222222222" // last 1 is from 61-69 px. The right
+        ];
+
+        return setupFromParagraphInnerHtml(pInnerHtmls, true);
     }
 
     function setupFromParagraphInnerHtml(
@@ -311,6 +349,18 @@ fdescribe("LineNavigator Tests", () => {
         });
     });
 
+    // A bunch of utility functions that can be passed directly without needing to create anonymous arrow functions for them over and over
+    const getP1 = () => getFirstTextNodeOfElement("p1")!;
+    const getP2 = () => getFirstTextNodeOfElement("p2")!;
+    const getP3 = () => getFirstTextNodeOfElement("p3")!;
+    const getP5 = () => getFirstTextNodeOfElement("p5")!;
+    const getP7 = () => getFirstTextNodeOfElement("p7")!;
+    const getS1 = () => getFirstTextNodeOfElement("s1")!;
+    const getS2a = () => getFirstTextNodeOfElement("s2a")!;
+    const getS2b = () => getFirstTextNodeOfElement("s2b")!;
+    const getS3a = () => getFirstTextNodeOfElement("s3a")!;
+    const getS3b = () => getFirstTextNodeOfElement("s3b")!;
+
     describe("Given ArrowUp on non talking book", () => {
         const l2Start = 13;
 
@@ -366,6 +416,46 @@ fdescribe("LineNavigator Tests", () => {
                 runScenario1Test(kArrowUp, getP2, offset, "", kNoAudio);
             });
         });
+
+        describe("Scenario4 (Empty Paragraph) Tests", () => {
+            it(`Given ArrowUp on non talking book (Scenario 4), cursor on third line, moves one line up to an empty paragraph`, () => {
+                // Setup
+                const setup = () => {
+                    const editable = setupScenario4("NoAudio");
+                    setSelectionTo(getFirstTextNodeOfElement("p3")!, 1);
+                    return editable;
+                };
+
+                // Verification
+                const verify = () => {
+                    // There's no text node we can point into (because it just has a <br> element).
+                    // Instead, the expected result is that we point it to the corresponding paragraph element
+                    const expectedNode = document.getElementById("p2")!;
+                    const sel = window.getSelection();
+                    verifySelection(sel, expectedNode, 0);
+                };
+
+                runLineNavTest(setup, verify, "ArrowUp");
+            });
+
+            it(`Given ArrowUp on non talking book (Scenario 4), cursor on empty paragraph, moves one line up to next paragraph`, () => {
+                // Setup
+                const setup = () => {
+                    const editable = setupScenario4("NoAudio");
+                    setSelectionTo(document.getElementById("p2")!, 0);
+                    return editable;
+                };
+
+                // Verification
+                const verify = () => {
+                    const expectedNode = getFirstTextNodeOfElement("p1")!;
+                    const sel = window.getSelection();
+                    verifySelection(sel, expectedNode);
+                };
+
+                runLineNavTest(setup, verify, "ArrowUp");
+            });
+        });
     });
 
     describe("Given ArrowDown on non talking book", () => {
@@ -413,6 +503,73 @@ fdescribe("LineNavigator Tests", () => {
             const i = l2Start + 4;
             const expected = "B3B. 444444444444.";
             runScenario1Test(kArrowDown, getP1, i, expected, kNoAudio);
+        });
+
+        describe("Scenario4 (Empty Paragraph) Tests", () => {
+            it(`Given ArrowDown on non talking book (Scenario 4), cursor on first line, moves one line down to an empty paragraph`, () => {
+                // Setup
+                const setup = () => {
+                    const editable = setupScenario4("NoAudio");
+                    setSelectionTo(getP1()!, 1);
+                    return editable;
+                };
+
+                // Verification
+                const verify = () => {
+                    // There's no text node we can point into (because it just has a <br> element).
+                    // Instead, the expected result is that we point it to the corresponding paragraph element
+                    const expectedNode = document.getElementById("p2")!;
+                    const sel = window.getSelection();
+                    verifySelection(sel, expectedNode, 0);
+                };
+
+                runLineNavTest(setup, verify, "ArrowDown");
+            });
+
+            it(`Given ArrowDown on non talking book (Scenario 4), cursor on empty paragraph, moves one line down to next paragraph`, () => {
+                // Setup
+                const setup = () => {
+                    const editable = setupScenario4("NoAudio");
+                    setSelectionTo(document.getElementById("p2")!, 0);
+                    return editable;
+                };
+
+                // Verification
+                const verify = () => {
+                    const expectedNode = getFirstTextNodeOfElement("p3")!;
+                    const sel = window.getSelection();
+                    verifySelection(sel, expectedNode);
+                };
+
+                runLineNavTest(setup, verify, "ArrowDown");
+            });
+        });
+
+        describe("Scenario5 (end of line) tests", () => {
+            // ENHANCE: Corresponding ArrowUp tests might be nice, but it's less tricky than this case.
+            it(`Given ArrowDown on non talking book, Scenario 5, cursor on Paragraph 1 end, moves down to LEFT of last char`, () => {
+                const i = 4; // To the right of the last char
+                const expected = "2"; // The left edge of the last char of line 2 is closer than its right edge, so this char should be included.
+                runScenarioTest(kArrowDown, 5, getP1, i, expected, kNoAudio);
+            });
+
+            it(`Given ArrowDown on non talking book, Scenario 5, cursor on Paragraph 3 end, moves down to RIGHT of last char`, () => {
+                const i = 4; // To the right of the last char
+                const expected = ""; // The right edge of the last char of line 4 is closer than its left edge, so this char should not be included.
+                runScenarioTest(kArrowDown, 5, getP3, i, expected, kNoAudio);
+            });
+
+            it(`Given ArrowDown on non talking book, Scenario 5, cursor on Paragraph 5 end, moves down to LEFT of last char`, () => {
+                const i = 17; // To the right of the last char
+                const expected = "7 888888888888"; // The left edge of the last char of line 6 is closer than its right edge, so this char should be included.
+                runScenarioTest(kArrowDown, 5, getP5, i, expected, kNoAudio);
+            });
+
+            it(`Given ArrowDown on non talking book, Scenario 5, cursor on Paragraph 7 end, moves down to LEFT of last char`, () => {
+                const i = 17; // To the right of the last char
+                const expected = " 222222222222"; // The left edge of the last char of line 6 is closer than its right edge, so this char should not be included.
+                runScenarioTest(kArrowDown, 5, getP7, i, expected, kNoAudio);
+            });
         });
     });
 
@@ -477,7 +634,7 @@ fdescribe("LineNavigator Tests", () => {
         });
 
         describe("Scenario2 onBoundary tests", () => {
-            it(`Given ArrowUp on TalkingBookSentenceSplit Scenario2, cursor on Line 3, Span 3 start, moves one line up`, () => {
+            it(`Given ArrowUp on TalkingBookSentenceSplit Scenario2, cursor on Line 3, Span 3A start, moves one line up`, () => {
                 runScenario2Test(kArrowUp, getS3a, 0, "2A2A", kSentence);
             });
 
@@ -600,7 +757,7 @@ fdescribe("LineNavigator Tests", () => {
     });
 });
 
-fdescribe("Anchor Tests", () => {
+describe("Anchor Tests", () => {
     it("Given paragraph with no spans and cursor at start, returns offset as indexFromStart", () => {
         const html = '<div class="bloom-editable"><p id="p1">S1. S2.</p></div>';
         setupElementFromHtml(html);
@@ -681,12 +838,3 @@ function setSelectionTo(node: Node, offset: number) {
 function getFirstTextNodeOfElement(id: string) {
     return document.getElementById(id)!.firstChild;
 }
-
-// A bunch of utility functions that can be passed directly without needing to create anonymous arrow functions for them over and over
-const getP1 = () => getFirstTextNodeOfElement("p1")!;
-const getP2 = () => getFirstTextNodeOfElement("p2")!;
-const getS1 = () => getFirstTextNodeOfElement("s1")!;
-const getS2a = () => getFirstTextNodeOfElement("s2a")!;
-const getS2b = () => getFirstTextNodeOfElement("s2b")!;
-const getS3a = () => getFirstTextNodeOfElement("s3a")!;
-const getS3b = () => getFirstTextNodeOfElement("s3b")!;
