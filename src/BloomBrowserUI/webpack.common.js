@@ -32,6 +32,7 @@ module.exports = merge(core, {
     // The root file for each bundle should import errorHandler.ts to enable Bloom's custom
     // error handling for that web page.
     entry: {
+        errorReportBundle: "./errorReport/ErrorReportDialog.tsx",
         problemReportBundle: "./problemDialog/ProblemDialog.tsx",
         editTabRootBundle: "./bookEdit/editViewFrame.ts",
         readerSetupBundle:

@@ -2606,6 +2606,17 @@
         <note>ID: EditTab.Widget.ChooseWidget</note>
         <note>User is supposed to choose a file containing HTML that can be embedded in an element of the book.</note>
       </trans-unit>
+	  <trans-unit id="ErrorReportDialog.Report">
+        <source xml:lang="en">Report</source>
+        <note>ID: ErrorReportDialog.Report</note>
+		<note>"Report" as in "Report a problem to the Bloom development team"</note>
+      </trans-unit>
+	  <!-- TODO: Remove this plaeholder, maybe? -->
+	  <trans-unit id="ErrorReportDialog.Retry">
+        <source xml:lang="en">Retry</source>
+        <note>ID: ErrorReportDialog.Retry</note>
+		<note>"Retry" as in "Retry the previous action"</note>
+      </trans-unit>
       <trans-unit id="Errors.BookProblem">
         <source xml:lang="en">Bloom had a problem showing this book. This doesn't mean your work is lost, but it does mean that something is out of date, is missing, or has gone wrong.</source>
         <note>ID: Errors.BookProblem</note>

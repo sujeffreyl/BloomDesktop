@@ -1,0 +1,35 @@
+@import "../bloomUI.less";
+
+.problem-dialog {
+    .dialog-title {
+        flex-direction: row;
+        display: flex;
+        padding: 6px 24px; // 24px is copied from Material UI, but 6px is smaller than Material UI default
+        justify-content: space-between; // right-justifies close X  (If close X in the JSX, but we moved it to Winforms)
+        .close-in-title {
+            padding-top: 4px;
+        }
+    }
+
+    .buttonHolder {
+        display: flex;
+
+        // Use space-between so that when we have both #left and #right, they are split out to the outside edges
+        justify-content: space-between;
+
+        // Use row-reverse instead of reverse so that when reportable is false, the only DialogActions group
+        // will be placed at the start (that is, the right). In standard "row", the start is the left
+        // but that's not where we want it to go.
+        flex-direction: row-reverse;
+
+        // The 24px padding is the left/right paddings. This is to match padding from .MuiDialogContent-root
+        // The 8px vertical padding can probably be whatever you want it to be, but I copied it from .MuiDialogContent-root.
+        padding: 8px 24px;
+    }
+
+    .allowSelect,
+    .allowSelect * {
+        -moz-user-select: text; // Firefox before v69
+        user-select: text;
+    }
+}

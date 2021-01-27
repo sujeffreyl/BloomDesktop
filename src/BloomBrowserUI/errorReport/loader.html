@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!-- We need this loader because this screen is currently loaded into its own geckfox browser -->
+<html class="errorReportScreen" lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Bloom Error Report</title>
+        <script src="../commonBundle.js"></script>
+        <script src="../errorReportBundle.js"></script>
+        <script>
+            const reactLoader = () => {
+                const rootDiv = document.getElementById("errorReport");
+                window.connectErrorReportDialog(rootDiv);
+            };
+            window.onload = reactLoader;
+        </script>
+    </head>
+    <body>
+        <div id="errorReport"></div>
+    </body>
+</html>

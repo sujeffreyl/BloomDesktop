@@ -330,6 +330,7 @@
     <Compile Include="CLI\CreateArtifactsCommand.cs" />
     <Compile Include="Collection\WritingSystem.cs" />
     <Compile Include="NotifyUserOfProblemLogger.cs" />
+    <Compile Include="ReactErrorReporter.cs" />
     <Compile Include="Publish\Android\AndroidPublishSettings.cs" />
     <Compile Include="Publish\Android\BloomReaderFileMaker.cs" />
     <Compile Include="Book\BookSelectionChangedEventArgs.cs" />
@@ -380,6 +381,7 @@
     <Compile Include="ToPalaso\BackgroundWorkerProgressAdapter.cs" />
     <Compile Include="Utils\BloomUnauthorizedAccessException.cs" />
     <Compile Include="WebLibraryIntegration\FirebaseLoginDialog.cs" />
+    <Compile Include="web\controllers\ErrorReportApi.cs" />
     <Compile Include="web\WebProgressAdapter.cs" />
     <Compile Include="Publish\HtmlPublishPanel.cs">
       <SubType>UserControl</SubType>

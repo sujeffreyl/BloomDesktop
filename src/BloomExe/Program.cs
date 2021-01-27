@@ -1199,7 +1199,7 @@ namespace Bloom
 				}
 			}
 
-			ErrorReport.SetErrorReporter(new NotifyUserOfProblemLogger());
+			ErrorReport.SetErrorReporter(ReactErrorReporter.Instance);
 
 
 			string issueTrackingUrl = UrlLookup.LookupUrl(UrlType.IssueTrackingSystem);

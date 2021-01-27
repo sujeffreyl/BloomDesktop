@@ -531,7 +531,7 @@ namespace Bloom.web.controllers
 			}
 		}
 
-		private static void LogProblem(Exception exception, string detailedMessage, string levelOfProblem)
+		internal static void LogProblem(Exception exception, string detailedMessage, string levelOfProblem)
 		{
 			var sb = new StringBuilder();
 			sb.AppendLine("*** ProblemReportApi is about to report:");
