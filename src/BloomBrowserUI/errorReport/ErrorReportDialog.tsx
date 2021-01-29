@@ -94,7 +94,9 @@ export const ErrorReportDialog: React.FunctionComponent<{
                             variant="text"
                             color="secondary"
                             onClick={() => {
-                                BloomApi.post("errorReport/doAltAction");
+                                BloomApi.postData("dialog/close", {
+                                    source: "alternate"
+                                });
                             }}
                         >
                             Secondary Action
@@ -113,7 +115,9 @@ export const ErrorReportDialog: React.FunctionComponent<{
                                 variant="text"
                                 color="secondary"
                                 onClick={() => {
-                                    BloomApi.post("errorReport/report");
+                                    BloomApi.postData("dialog/close", {
+                                        source: "report"
+                                    });
                                 }}
                             >
                                 Report

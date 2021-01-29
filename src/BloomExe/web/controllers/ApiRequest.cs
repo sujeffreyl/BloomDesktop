@@ -236,14 +236,20 @@ namespace Bloom.Api
 		}
 		public string RequiredPostJson()
 		{
-			Debug.Assert(_requestInfo.HttpMethod == HttpMethods.Post, "Expected HttpMethod to be Post but instead got: " + _requestInfo.HttpMethod.ToString());
-			var json = _requestInfo.GetPostJson();
+			var json = GetPostJson();
 			if (!string.IsNullOrWhiteSpace(json))
 			{
 				return json;
 			}
 			throw new ApplicationException("The query " + _requestInfo.RawUrl + " should have post json");
 		}
+
+		public string GetPostJson()
+		{
+			Debug.Assert(_requestInfo.HttpMethod == HttpMethods.Post, "Expected HttpMethod to be Post but instead got: " + _requestInfo.HttpMethod.ToString());
+			return _requestInfo.GetPostJson();
+		}
+
 		public string RequiredPostString()
 		{
 			Debug.Assert(_requestInfo.HttpMethod == HttpMethods.Post);

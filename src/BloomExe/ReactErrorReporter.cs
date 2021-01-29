@@ -16,9 +16,10 @@ namespace Bloom
 {
 	public class ErrorReportUtils
 	{
-		public static void NotifyUserOfProblem(Exception error, bool allowReport, string messageFmt, params object[] args)
+		public static void NotifyUserOfProblem(Exception error, bool allowReport, Action alternateAction, string messageFmt, params object[] args)
 		{
 			ReactErrorReporter.Instance.AllowReportOnNextNotify = allowReport;
+			ReactErrorReporter.Instance.OnAlternatePressed= alternateAction;
 			ErrorReport.NotifyUserOfProblem(error, messageFmt, args);
 		}
 	}
@@ -28,16 +29,12 @@ namespace Bloom
 	{
 		// TODO: Add Sentry reporting functionality
 
-		// TODO: What if multiple threads trying to set this.
-		public bool AllowReportOnNextNotify { get; set; } = false;
-
-		private bool _showingDialog = false;
-		static object _showingDialogLock = new object();
-
 		private ReactErrorReporter()
 		{
 		}
 
+		public const string kNonFatal = "nonfatal";
+		public const string kFatal = "fatal";
 		private static ReactErrorReporter _instance;
 		public static ReactErrorReporter Instance
 		{
@@ -51,9 +48,18 @@ namespace Bloom
 			}
 		}
 
+		// TODO: What if multiple threads trying to set this.
+		public bool AllowReportOnNextNotify { get; set; } = false;
+		public Action OnAlternatePressed { get; set; } = null;
+
+		private bool _showingDialog = false;
+		static object _showingDialogLock = new object();
+
+
+		// TODO: Handle IRepeatNoticePolicy
 		public ErrorResult NotifyUserOfProblem(IRepeatNoticePolicy policy, string alternateButton1Label, ErrorResult resultIfAlternateButtonPressed, string message)
 		{
-			ShowDialog(null, message, "user", "", false);
+			ShowDialog(null, message, kNonFatal);
 			return ErrorResult.OK;
 		}
 
@@ -69,6 +75,8 @@ namespace Bloom
 
 		public void ReportNonFatalException(Exception exception, IRepeatNoticePolicy policy)
 		{
+			// TODO: Test me
+			ShowDialog(exception, null, kNonFatal);
 			throw new NotImplementedException();
 		}
 
@@ -82,9 +90,11 @@ namespace Bloom
 			throw new NotImplementedException();
 		}
 
-		public void ShowDialog(Exception exception,
-			string detailedMessage = "", string levelOfProblem = "user", string shortUserLevelMessage = "", bool isShortMessagePreEncoded = false)
+		private void ShowDialog(Exception exception,
+			string detailedMessage = "", string levelOfProblem = "user")
 		{
+			// TODO: Do we care that it says "ProblemReportAPi" instead of "ErrorReporter"?
+
 			// Before we do anything that might be "risky", put the problem in the log.
 			ProblemReportApi.LogProblem(exception, detailedMessage, levelOfProblem);
 			Program.CloseSplashScreen(); // if it's still up, it'll be on top of the dialog
@@ -106,8 +116,6 @@ namespace Bloom
 
 				_showingDialog = true;
 			}
-
-			//GatherReportInfoExceptScreenshot(exception, detailedMessage, shortUserLevelMessage, isShortMessagePreEncoded);
 
 			// ENHANCE: Allow the caller to pass in the control, which would be at the front of this.
 			System.Windows.Forms.Control control = Form.ActiveForm ?? FatalExceptionHandler.ControlOnUIThread;
@@ -134,9 +142,24 @@ namespace Bloom
 
 						// ShowDialog will cause this thread to be blocked (because it spins up a modal) until the dialog is closed.
 						BloomServer._theOneInstance.RegisterThreadBlocking();
+
 						try
 						{
 							dlg.ShowDialog();
+
+							// Continue to hold the lock, so we don't have to worry about what might run
+							// in between the first dialog closing and the potentially next one starting
+
+							// Take action if the user clicked a button other than Close
+							if (BrowserDialogApi.LastCloseSource == "alternate")
+							{
+								this.OnAlternatePressed?.Invoke();
+							}
+							else if (BrowserDialogApi.LastCloseSource == "report")
+							{
+								// TODO: This needs a L10N key. And the right copy.
+								NonFatalProblem.Report(ModalIf.All, PassiveIf.None, "Bloom reported a non-fatal problem", detailedMessage, exception, showSendReport: true);
+							}
 						}
 						finally
 						{
@@ -148,7 +171,7 @@ namespace Bloom
 				{
 					// TODO: Review this code
 
-					Logger.WriteError("*** ProblemReportApi threw an exception trying to display", problemReportException);
+					Logger.WriteError("*** ReactErrorReporter threw an exception trying to display", problemReportException);
 					// At this point our problem reporter has failed for some reason, so we want the old WinForms handler
 					// to report both the original error for which we tried to open our dialog and this new one where
 					// the dialog itself failed.
@@ -169,5 +192,15 @@ namespace Bloom
 			});
 		}
 
+		// TODO: Remove me and helloWorld.html
+		internal static void TestAction()
+		{
+			var rootPath = BloomFileLocator.GetBrowserFile(false, "errorReport", "helloWorld.html");
+			var url = rootPath.ToLocalhost();
+			using (var dlg = new BrowserDialog(url))
+			{
+				dlg.ShowDialog();
+			}
+		}
 	}
 }
