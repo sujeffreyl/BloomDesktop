@@ -15,6 +15,7 @@ namespace Bloom.web.controllers
 					// Closes the current dialog.
 					// Optionally, the caller may provide (in JSON) an object with a "source" field with a string value.  This "source" represents the button/etc that initiated the close action.
 
+					LastCloseSource = null;	// First reset the source, in case of any parsing errors
 					var postData = ParseCloseData(request);
 					LastCloseSource = postData.source;
 
@@ -26,7 +27,7 @@ namespace Bloom.web.controllers
 		// Retrieves and parses the POST data from the close request. 
 		private CloseRequestData ParseCloseData(ApiRequest request)
 		{
-			string json = request.GetPostJson();
+			string json = request.OptionalPostJson();
 			return string.IsNullOrEmpty(json)
 				? new CloseRequestData()
 				: JsonConvert.DeserializeObject<CloseRequestData>(json);

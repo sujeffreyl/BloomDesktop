@@ -399,10 +399,34 @@ namespace Bloom.Book
 				// ENHANCE: If it's going to kill the Bloom process right afterward, seems like it could call the fatal error version instead...
 
 				//ErrorReport.NotifyUserOfProblem(ex,
-				ErrorReportUtils.NotifyUserOfProblem(ex, true, ReactErrorReporter.TestAction, 
-					"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
-					badFilePath +
-					".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
+
+				// Method 0
+				//ErrorReportUtils.NotifyUserOfProblem(ex, true, ReactErrorReporter.TestAction,
+				//	"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
+				//	badFilePath +
+				//	".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
+
+				// Method 1
+				ErrorReportUtils.ReportNonFatalException(true, null, ex, new ShowAlwaysPolicy());
+
+				// Method 2
+		//		ErrorReportUtils.ReportNonFatalExceptionWithMessage(true, ReactErrorReporter.TestAction, ex, 
+		//"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
+		//badFilePath +
+		//".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
+
+				// Method 3
+		//		ErrorReportUtils.ReportNonFatalMessageWithStackTrace(true, ReactErrorReporter.TestAction, 
+		//"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
+		//badFilePath +
+		//".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
+
+				// Method 4
+				// ErrorReportUtils.ReportFatalException(true, ReactErrorReporter.TestAction, ex);
+
+				// Method 5
+				// ErrorReportUtils.ReportFatalMessageWithStackTrace(true, ReactErrorReporter.TestAction, "Test fatal message #{0}", 1);
+
 				// TODO: Re-enable me
 				// Process.GetCurrentProcess().Kill();
 			}

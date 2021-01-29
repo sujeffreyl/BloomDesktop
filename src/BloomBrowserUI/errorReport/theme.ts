@@ -1,18 +1,19 @@
 import { createMuiTheme, Theme } from "@material-ui/core/styles";
-import { ProblemKind } from "./ErrorReportDialog";
+import { Severity } from "./ErrorReportDialog";
 
 const kBloomBlue = "#1d94a4";
 const kNonFatalColor = "#F3AA18";
-export const kindParams = {
-    User: {
-        dialogHeaderColor: kBloomBlue,
-        primaryColor: kBloomBlue,
-        title: "Report a Problem",
-        l10nKey: "ReportProblemDialog.UserTitle"
-    },
+export const sevParams = {
+    // TODO: Cleanup
+    // User: {
+    //     dialogHeaderColor: kBloomBlue,
+    //     primaryColor: kBloomBlue,
+    //     title: "Report a Problem",
+    //     l10nKey: "ReportProblemDialog.UserTitle"
+    // },
     Fatal: {
-        dialogHeaderColor: "#f44336",
-        primaryColor: "#2F58EA",
+        dialogHeaderColor: "#f44336", // a bright red color
+        primaryColor: "#2F58EA", // a bright blue color
         title: "Bloom encountered an error and needs to quit",
         l10nKey: "ReportProblemDialog.FatalTitle"
     },
@@ -24,14 +25,14 @@ export const kindParams = {
     }
 };
 
-export function makeTheme(kind: ProblemKind): Theme {
+export function makeTheme(severity: Severity): Theme {
     // (21 Nov. '19) "<any>"" is required because we define fontFamily as type string[], but as of now
     // the Material UI typescript defn. doesn't allow that. It works, though.
     return createMuiTheme(<any>{
         palette: {
-            primary: { main: kindParams[kind.toString()].primaryColor },
+            primary: { main: sevParams[severity.toString()].primaryColor },
             secondary: { main: "#FFFFFF" },
-            error: { main: kindParams["NonFatal"].primaryColor }
+            error: { main: sevParams["NonFatal"].primaryColor }
         },
         typography: {
             fontSize: 12,
@@ -52,7 +53,7 @@ export function makeTheme(kind: ProblemKind): Theme {
                 root: {
                     color: "#FFFFFF",
                     backgroundColor:
-                        kindParams[kind.toString()].dialogHeaderColor,
+                        sevParams[severity.toString()].dialogHeaderColor,
                     "& h6": { fontWeight: "bold" }
                 }
             },
@@ -74,11 +75,8 @@ export function makeTheme(kind: ProblemKind): Theme {
                 containedPrimary: {
                     color: "#FFFFFF"
                 },
-                containedSecondary: {
-                    color: kNonFatalColor
-                },
                 textSecondary: {
-                    color: kNonFatalColor
+                    color: sevParams[severity.toString()].dialogHeaderColor
                 }
             }
         }

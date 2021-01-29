@@ -221,6 +221,8 @@ namespace Bloom.Api
 			return true;
 		}
 
+		public string GetContentType() => _requestInfo.RequestContentType;
+		
 		public UrlPathString RequiredFileNameOrPath(string name)
 		{
 			if (Parameters.AllKeys.Contains(name))
@@ -243,13 +245,26 @@ namespace Bloom.Api
 			}
 			throw new ApplicationException("The query " + _requestInfo.RawUrl + " should have post json");
 		}
+		/// <summary>
+		/// Gets the JSON data from a POST request
+		/// </summary>
+		/// <returns>If the request's content type is "application/json", returns the data as a JSON string
+		/// If the request's content type is not "application/json", returns null instead</returns>
+		public string OptionalPostJson()
+		{
+			string contentType = GetContentType();	// Note: could contain suffixes like charset=[...]
+			if (contentType == null || !contentType.ToLowerInvariant().Contains("application/json"))
+			{
+				return null;
+			}
 
+			return GetPostJson();
+		}
 		public string GetPostJson()
 		{
 			Debug.Assert(_requestInfo.HttpMethod == HttpMethods.Post, "Expected HttpMethod to be Post but instead got: " + _requestInfo.HttpMethod.ToString());
 			return _requestInfo.GetPostJson();
 		}
-
 		public string RequiredPostString()
 		{
 			Debug.Assert(_requestInfo.HttpMethod == HttpMethods.Post);

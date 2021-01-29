@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,11 +17,51 @@ namespace Bloom
 {
 	public class ErrorReportUtils
 	{
-		public static void NotifyUserOfProblem(Exception error, bool allowReport, Action alternateAction, string messageFmt, params object[] args)
+		#region Facade around IErrorReporter, but allows specifying allowReport and alternateAction
+		public static void NotifyUserOfProblem(bool allowReport, Action alternateAction, Exception error, string messageFmt, params object[] args)
+		{
+			SetupReactErrorReporter(allowReport, alternateAction);
+			ErrorReport.NotifyUserOfProblem(error, messageFmt, args);
+		}
+
+		public static void ReportNonFatalException(bool allowReport, Action alternateAction, Exception exception, IRepeatNoticePolicy policy)
+		{
+			SetupReactErrorReporter(allowReport, alternateAction);
+			ErrorReport.ReportNonFatalException(exception, policy);
+		}
+
+		public static void ReportNonFatalExceptionWithMessage(bool allowReport, Action alternateAction, Exception error, string message, params object[] args)
+		{
+			SetupReactErrorReporter(allowReport, alternateAction);
+			ErrorReport.ReportNonFatalExceptionWithMessage(error, message, args);
+		}
+
+		public static void ReportNonFatalMessageWithStackTrace(bool allowReport, Action alternateAction, string message, params object[] args)
+		{
+			SetupReactErrorReporter(allowReport, alternateAction);
+			ErrorReport.ReportNonFatalMessageWithStackTrace(message, args);
+			
+		}
+
+		public static void ReportFatalException(bool allowReport, Action alternateAction, Exception e)
+		{
+			SetupReactErrorReporter(allowReport, alternateAction);
+			ErrorReport.ReportFatalException(e);
+		}
+
+		public static void ReportFatalMessageWithStackTrace(bool allowReport, Action alternateAction, string message, params object[] args)
+		{
+			// Note: I added "params" in front of object[] args here in the facade, even though IErrorReporter actually doesn't.
+			// I think it makes more sense to be params form...
+			SetupReactErrorReporter(allowReport, alternateAction);
+			ErrorReport.ReportFatalMessageWithStackTrace(message, args);
+		}
+		#endregion
+
+		private static void SetupReactErrorReporter(bool allowReport, Action alternateAction)
 		{
 			ReactErrorReporter.Instance.AllowReportOnNextNotify = allowReport;
 			ReactErrorReporter.Instance.OnAlternatePressed= alternateAction;
-			ErrorReport.NotifyUserOfProblem(error, messageFmt, args);
 		}
 	}
 
@@ -33,8 +74,10 @@ namespace Bloom
 		{
 		}
 
-		public const string kNonFatal = "nonfatal";
-		public const string kFatal = "fatal";
+		// These values need to correspond with ErrorReportDialog.tsx's Severity enum
+		public const string kNonFatal = "NonFatal";
+		public const string kFatal = "Fatal";
+
 		private static ReactErrorReporter _instance;
 		public static ReactErrorReporter Instance
 		{
@@ -59,44 +102,48 @@ namespace Bloom
 		// TODO: Handle IRepeatNoticePolicy
 		public ErrorResult NotifyUserOfProblem(IRepeatNoticePolicy policy, string alternateButton1Label, ErrorResult resultIfAlternateButtonPressed, string message)
 		{
-			ShowDialog(null, message, kNonFatal);
+			ShowDialog(kNonFatal, message, null);
 			return ErrorResult.OK;
-		}
-
-		public void ReportFatalException(Exception e)
-		{
-			throw new NotImplementedException();
-		}
-
-		public void ReportFatalMessageWithStackTrace(string message, object[] args)
-		{
-			throw new NotImplementedException();
 		}
 
 		public void ReportNonFatalException(Exception exception, IRepeatNoticePolicy policy)
 		{
-			// TODO: Test me
-			ShowDialog(exception, null, kNonFatal);
-			throw new NotImplementedException();
+			ShowDialog(kNonFatal, null, exception);
 		}
 
 		public void ReportNonFatalExceptionWithMessage(Exception error, string message, params object[] args)
 		{
-			throw new NotImplementedException();
+			// Note: Current behavior is that the message will be displayed to the user.
+			// The exception will not be shown directly, but if the user reports the error,
+			// then the exception will be submitted and is also visible after clicking Problem Report Dialog's "Learn More" button.
+			ShowDialog(kNonFatal, String.Format(message, args), error);
 		}
 
 		public void ReportNonFatalMessageWithStackTrace(string message, params object[] args)
 		{
-			throw new NotImplementedException();
+			var stack = new StackTrace(true);
+			ShowDialog(kNonFatal, String.Format(message, args), null, stack);
 		}
 
-		private void ShowDialog(Exception exception,
-			string detailedMessage = "", string levelOfProblem = "user")
+		public void ReportFatalException(Exception e)
 		{
+			ShowDialog(kFatal, null, e);
+		}
+
+		public void ReportFatalMessageWithStackTrace(string message, object[] args)
+		{
+			ShowDialog(kFatal, String.Format(message, args), null, new StackTrace());
+		}
+
+
+
+		private void ShowDialog(string severity,
+            string messageText = "", Exception exception = null, StackTrace stackTrace = null)
+        {
 			// TODO: Do we care that it says "ProblemReportAPi" instead of "ErrorReporter"?
 
 			// Before we do anything that might be "risky", put the problem in the log.
-			ProblemReportApi.LogProblem(exception, detailedMessage, levelOfProblem);
+			ProblemReportApi.LogProblem(exception, messageText, severity);
 			Program.CloseSplashScreen(); // if it's still up, it'll be on top of the dialog
 
 			lock (_showingDialogLock)
@@ -124,17 +171,34 @@ namespace Bloom
 				// Uses a browser dialog to show the problem report
 				try
 				{
-					var encodedMessage = UrlPathString.CreateFromUnencodedString(detailedMessage).UrlEncoded;
-					var query = $"?{levelOfProblem}&reportable={(AllowReportOnNextNotify ? 1 : 0)}&msg={encodedMessage}";
+					var message = GetMessage(messageText, exception, stackTrace);
+					
 					var problemDialogRootPath = BloomFileLocator.GetBrowserFile(false, "errorReport", "loader.html");
+					var query = $"?sev={severity}&reportable={(AllowReportOnNextNotify ? 1 : 0)}";
 					var url = problemDialogRootPath.ToLocalhost() + query;
+
+					// Prefer putting the message in the URL parameters, so it can just be a simple one-and-done GET request.
+					//   (IMO, this makes debugging easier and simplifies the rendering process).
+					// But very long URL's cause our BrowserDialog problems.
+					// Although there are suggestions that Firefox based browsers could have URL's about 60k in length,
+					// we'll just stick to <2k because that was recommended as a length with basically universal support across browser platforms
+					string encodedMessage = message.UrlEncoded;
+					if (url.Length + encodedMessage.Length < 2048)
+					{
+						url += $"&msg={encodedMessage}";
+					}
+					else
+					{						
+						ErrorReportApi.Message = message.NotEncoded;
+					}
+					
 
 					// Precondition: we must be on the UI thread for Gecko to work.
 					using (var dlg = new BrowserDialog(url))
 					{
 						dlg.Width = 620;
 
-						// 350px was experimentally determined as what was needed for the longest known text
+						// 350px was experimentally determined as what was needed for the longest known text for NotifyUserOfProblem
 						// (which is "Before saving, Bloom did an integrity check of your book [...]" from BookStorage.cs)
 						// You can make this height taller if need be.
 						// A scrollbar will appear if the height is not tall enough for the text
@@ -158,20 +222,23 @@ namespace Bloom
 							else if (BrowserDialogApi.LastCloseSource == "report")
 							{
 								// TODO: This needs a L10N key. And the right copy.
-								NonFatalProblem.Report(ModalIf.All, PassiveIf.None, "Bloom reported a non-fatal problem", detailedMessage, exception, showSendReport: true);
+								var shortMessage = severity == kFatal ? "Bloom reported a fatal problem" : "Bloom reported a non-fatal problem";
+								ProblemReportApi.ShowProblemDialog(control, exception, messageText, severity.ToLowerInvariant(), shortMessage);
+
+								// TODO: Theoretically, shouldn't we come back to the same dialog?
 							}
 						}
 						finally
 						{
 							BloomServer._theOneInstance.RegisterThreadUnblocked();
 						}
+
+						// TODO: Should we automatically kill it if severity is Fatal?
 					}
 				}
-				catch (Exception problemReportException)
+				catch (Exception errorReporterException)
 				{
-					// TODO: Review this code
-
-					Logger.WriteError("*** ReactErrorReporter threw an exception trying to display", problemReportException);
+					Logger.WriteError("*** ReactErrorReporter threw an exception trying to display", errorReporterException);
 					// At this point our problem reporter has failed for some reason, so we want the old WinForms handler
 					// to report both the original error for which we tried to open our dialog and this new one where
 					// the dialog itself failed.
@@ -179,8 +246,10 @@ namespace Bloom
 					// inner exception. We include the message of the exception we just caught. Then we call the
 					// old WinForms fatal exception report directly.
 					// In any case, both of the errors will be logged by now.
-					var message = "Bloom's error reporting failed: " + problemReportException.Message;
-					ErrorReport.ReportFatalException(new ApplicationException(message, exception ?? problemReportException));
+					var message = "Bloom's error reporting failed: " + errorReporterException.Message;
+
+					// TODO: Needs to fallback to Winforms
+					ErrorReport.ReportFatalException(new ApplicationException(message, exception ?? errorReporterException));
 				}
 				finally
 				{
@@ -191,6 +260,32 @@ namespace Bloom
 				}
 			});
 		}
+
+		internal static UrlPathString GetMessage(string detailedMessage, Exception exception, StackTrace stackTrace = null)
+		{
+			string textToReport;
+			if (!string.IsNullOrEmpty(detailedMessage))
+			{
+				if (stackTrace == null)
+				{
+					textToReport = detailedMessage;
+				}
+				else
+				{
+					textToReport = $"Message (not an exception): {detailedMessage}" + Environment.NewLine
+						+ Environment.NewLine
+						+ "--Stack--" + Environment.NewLine
+						+ stackTrace.ToString();
+				}
+			}
+			else
+			{
+				textToReport = exception.Message;
+			}
+
+			return UrlPathString.CreateFromUnencodedString(textToReport, true);
+		}
+
 
 		// TODO: Remove me and helloWorld.html
 		internal static void TestAction()

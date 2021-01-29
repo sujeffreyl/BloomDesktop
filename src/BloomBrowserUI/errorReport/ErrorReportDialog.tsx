@@ -13,28 +13,34 @@ import { BloomApi } from "../utils/bloomApi";
 import { makeStyles, ThemeProvider, withStyles } from "@material-ui/styles";
 import "./ErrorReportDialog.less";
 import BloomButton from "../react_components/bloomButton";
-import { MuiCheckbox } from "../react_components/muiCheckBox";
-import { useState, useEffect, useRef } from "react";
-import { makeTheme, kindParams } from "./theme";
+import { makeTheme, sevParams } from "./theme";
 import ReactDOM = require("react-dom");
 import { useL10n } from "../react_components/l10nHooks";
+import { encode } from "html-entities";
 
-export enum ProblemKind {
-    User = "User",
+export enum Severity {
     NonFatal = "NonFatal",
     Fatal = "Fatal"
 }
 
 const kEdgePadding = "24px";
 export const ErrorReportDialog: React.FunctionComponent<{
-    kind: ProblemKind;
+    kind: Severity;
     reportable: boolean;
-    message: string | null;
+    messageParam: string | null;
 }> = props => {
     const theme = makeTheme(props.kind);
-    const englishTitle = kindParams[props.kind.toString()].title;
-    const titleKey = kindParams[props.kind.toString()].l10nKey;
+    const englishTitle = sevParams[props.kind.toString()].title;
+    const titleKey = sevParams[props.kind.toString()].l10nKey;
     const localizedDlgTitle = useL10n(englishTitle, titleKey);
+
+    const [message] = BloomApi.useApiStringIf(
+        "errorReport/message",
+        props.messageParam || "",
+        () => {
+            return props.messageParam === null;
+        }
+    );
 
     const useContentStyle = makeStyles({
         root: {
@@ -45,7 +51,7 @@ export const ErrorReportDialog: React.FunctionComponent<{
     // Assuming we've tried to submit a report (no matter the result),
     // this will give us either a Close or Quit button.
     const getEndingButton = (): JSX.Element | null => {
-        const keyword = props.kind === ProblemKind.Fatal ? "Quit" : "Close";
+        const keyword = props.kind === Severity.Fatal ? "Quit" : "Close";
         const l10nKey = `ReportProblemDialog.${keyword}`;
         return (
             <BloomButton
@@ -154,15 +160,36 @@ export const ErrorReportDialog: React.FunctionComponent<{
                     /> */}
                 </DialogTitle>
                 <DialogContent className={useContentStyle().root}>
-                    <DialogContentText className="allowSelect">
-                        {props.message || ""}
-                    </DialogContentText>
+                    {/* InnerHTML is used so that we can insert <br> entities into the message. */}
+                    <DialogContentText
+                        className="allowSelect"
+                        dangerouslySetInnerHTML={{
+                            __html: formatForHtml(message)
+                        }}
+                    ></DialogContentText>
                 </DialogContent>
                 {getDialogActionButtons()}
             </Dialog>
         </ThemeProvider>
     );
 };
+
+// Takes in an unsafe piece of text, and readies it to be displayed in HTML.
+// The result will be:
+// 1) HTML-encoded (so, theoretically safe to pass into InnerHTML)
+// 2) newlines and carriage returns are converted into <br> elements.
+function formatForHtml(unsafeText: string): string {
+    let safeText = encode(unsafeText);
+
+    // Replace literal newlines (which HTML ignores) with <br> elements.
+    const htmlNewline = "<br />";
+    safeText = safeText
+        .replace(/\r\n/g, htmlNewline)
+        .replace(/\r/g, htmlNewline)
+        .replace(/\n/g, htmlNewline);
+
+    return safeText;
+}
 
 // allow plain 'ol javascript in the html to connect up react
 (window as any).connectErrorReportDialog = (element: Element | null) => {
@@ -171,11 +198,21 @@ export const ErrorReportDialog: React.FunctionComponent<{
     const queryStringWithoutQuestionMark = window.location.search.substring(1);
     const params = new URLSearchParams(queryStringWithoutQuestionMark);
 
+    const severityStr = params.get("sev");
+    let severity: Severity | undefined = Severity[severityStr || ""];
+    if (severity === undefined) {
+        console.assert(
+            severity,
+            `Severity (${severityStr}) could not be parsed.`
+        );
+        severity = Severity.NonFatal;
+    }
+
     ReactDOM.render(
         <ErrorReportDialog
-            kind={ProblemKind.NonFatal}
+            kind={severity}
             reportable={params.get("reportable") === "1"}
-            message={params.get("msg")}
+            messageParam={params.get("msg")}
         />,
         element
     );

@@ -434,6 +434,8 @@ namespace Bloom.web.controllers
 					// old WinForms fatal exception report directly.
 					// In any case, both of the errors will be logged by now.
 					var message = "Bloom's error reporting failed: " + problemReportException.Message;
+
+					// TODO: You need to set it back to Winforms.
 					ErrorReport.ReportFatalException(new ApplicationException(message, _reportInfo.Exception ?? problemReportException));
 				}
 				finally

@@ -4,7 +4,7 @@ import { ThemeProvider } from "@material-ui/styles";
 import { storiesOf } from "@storybook/react";
 import { addDecorator } from "@storybook/react";
 import { StorybookContext } from "../.storybook/StoryBookContext";
-import { ErrorReportDialog, ProblemKind } from "./ErrorReportDialog";
+import { ErrorReportDialog, Severity } from "./ErrorReportDialog";
 
 // TODO: Stories are broken. Is that because of recently upgrading dependencies?
 
@@ -21,19 +21,18 @@ addDecorator(storyFn => (
 // e.g. http://localhost:8089/bloom/C%3A/src/BloomDesktop5.1/output/browser/errorReport/loader.html?user&reportable=0&msg=Hello+world
 
 storiesOf("Problem Report", module)
-    //     .add("NonFatalError", () => <ErrorReportDialog kind={ProblemKind.NonFatal} />)
     //     .add("FatalError", () => <ErrorReportDialog kind={ProblemKind.Fatal} />)
     .add("UserProblem (Reportable)", () => (
         <ErrorReportDialog
-            kind={ProblemKind.User}
+            kind={Severity.NonFatal}
             reportable={true}
-            message="Fake error message"
+            messageParam="Fake error message"
         />
     ))
     .add("UserProblem (Not Reportable)", () => (
         <ErrorReportDialog
-            kind={ProblemKind.User}
+            kind={Severity.NonFatal}
             reportable={false}
-            message="Fake error message"
+            messageParam="Fake error message"
         />
     ));
