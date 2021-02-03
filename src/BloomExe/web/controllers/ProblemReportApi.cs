@@ -18,6 +18,7 @@ using SIL.Extensions;
 using SIL.IO;
 using SIL.Progress;
 using SIL.Reporting;
+using SIL.Windows.Forms.Reporting;
 
 namespace Bloom.web.controllers
 {
@@ -348,6 +349,8 @@ namespace Bloom.web.controllers
 		// Extra locking object because 1) you can't lock primitives directly, and 2) you shouldn't use the object whose value you'll be reading as the lock object (reads to the object are not blocked)
 		static object _showingProblemReportLock = new object();	
 
+		// TODO: Reduce duplication in ReactErrorReport and ProblemReportApi code. Maybe some of the ProblemReportApi code can move to ErrorReporter code.
+
 		/// <summary>
 		/// Shows a problem dialog.
 		/// </summary>
@@ -401,7 +404,7 @@ namespace Bloom.web.controllers
 				// Uses a browser dialog to show the problem report
 				try
 				{
-					var query = "?" + levelOfProblem;
+					var query = $"?level={levelOfProblem}";
 					var problemDialogRootPath = BloomFileLocator.GetBrowserFile(false, "problemDialog", "loader.html");
 					var url = problemDialogRootPath.ToLocalhost() + query;
 
@@ -435,8 +438,9 @@ namespace Bloom.web.controllers
 					// In any case, both of the errors will be logged by now.
 					var message = "Bloom's error reporting failed: " + problemReportException.Message;
 
-					// TODO: You need to set it back to Winforms.
-					ErrorReport.ReportFatalException(new ApplicationException(message, _reportInfo.Exception ?? problemReportException));
+					// Fallback to Winforms in case of trouble getting the browser up
+					var fallbackReporter = new WinFormsErrorReporter();
+					fallbackReporter.ReportFatalException(new ApplicationException(message, exception ?? problemReportException));
 				}
 				finally
 				{

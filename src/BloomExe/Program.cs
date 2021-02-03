@@ -1200,9 +1200,9 @@ namespace Bloom
 				}
 			}
 
-			var orderedReporters = new IErrorReporter[] { SentryErrorReporter.Instance, ReactErrorReporter.Instance };
-			var reactAndSentryReporter = new CompositeErrorReporter(orderedReporters, primaryReporter: ReactErrorReporter.Instance);
-			ErrorReport.SetErrorReporter(reactAndSentryReporter);
+			var orderedReporters = new IErrorReporter[] { SentryErrorReporter.Instance, HtmlErrorReporter.Instance };
+			var htmlAndSentryReporter = new CompositeErrorReporter(orderedReporters, primaryReporter: HtmlErrorReporter.Instance);
+			ErrorReport.SetErrorReporter(htmlAndSentryReporter);
 
 
 			string issueTrackingUrl = UrlLookup.LookupUrl(UrlType.IssueTrackingSystem);
