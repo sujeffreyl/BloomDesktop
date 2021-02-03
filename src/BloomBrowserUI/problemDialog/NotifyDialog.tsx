@@ -5,33 +5,25 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    Link,
-    TextField,
     Typography
 } from "@material-ui/core";
 import { BloomApi } from "../utils/bloomApi";
 import { makeStyles, ThemeProvider, withStyles } from "@material-ui/styles";
-import "./ErrorReportDialog.less";
+import "./ProblemDialog.less";
 import BloomButton from "../react_components/bloomButton";
-import { makeTheme, sevParams } from "./theme";
-import ReactDOM = require("react-dom");
+import { makeTheme, kindParams } from "./theme";
 import { useL10n } from "../react_components/l10nHooks";
 import { encode } from "html-entities";
-
-export enum Severity {
-    NonFatal = "NonFatal",
-    Fatal = "Fatal"
-}
+import { ProblemKind } from "./ProblemDialog";
 
 const kEdgePadding = "24px";
-export const ErrorReportDialog: React.FunctionComponent<{
-    kind: Severity;
+export const NotifyDialog: React.FunctionComponent<{
     reportable: boolean;
     messageParam: string | null;
 }> = props => {
-    const theme = makeTheme(props.kind);
-    const englishTitle = sevParams[props.kind.toString()].title;
-    const titleKey = sevParams[props.kind.toString()].l10nKey;
+    const theme = makeTheme(ProblemKind.NonFatal);
+    const englishTitle = kindParams[ProblemKind.NonFatal].title;
+    const titleKey = kindParams[ProblemKind.NonFatal].l10nKey;
     const localizedDlgTitle = useL10n(englishTitle, titleKey);
 
     const [message] = BloomApi.useApiStringIf(
@@ -51,18 +43,16 @@ export const ErrorReportDialog: React.FunctionComponent<{
     // Assuming we've tried to submit a report (no matter the result),
     // this will give us either a Close or Quit button.
     const getEndingButton = (): JSX.Element | null => {
-        const keyword = props.kind === Severity.Fatal ? "Quit" : "Close";
-        const l10nKey = `ReportProblemDialog.${keyword}`;
         return (
             <BloomButton
                 enabled={true}
-                l10nKey={l10nKey}
+                l10nKey={"ReportProblemDialog.Close"}
                 hasText={true}
                 onClick={() => {
                     BloomApi.post("dialog/close");
                 }}
             >
-                {keyword}
+                Close
             </BloomButton>
         );
     };
@@ -88,8 +78,8 @@ export const ErrorReportDialog: React.FunctionComponent<{
         });
         return (
             <>
-                <div className="buttonHolder">
-                    {/* Note: buttonHolder is a flexbox with row-reverse, so the 1st one is the right-most.
+                <div className="twoColumnHolder">
+                    {/* Note: twoColumnHolder is a flexbox with row-reverse, so the 1st one is the right-most.
                         Using row-reverse allows us to skip putting an empty leftActions, which is theoretically one less thing to render
                     */}
                     <DialogActions className={useRightStyle().root}>
@@ -149,7 +139,7 @@ export const ErrorReportDialog: React.FunctionComponent<{
                 {/* The whole disableTypography and Typography thing gets around Material-ui putting the
                     Close icon inside of the title's Typography element, where we don't have control over its CSS. */}
                 <DialogTitle
-                    className="dialog-title allowSelect"
+                    className="dialog-title notify-dialog-title allowSelect"
                     disableTypography={true}
                 >
                     <Typography variant="h6">{localizedDlgTitle}</Typography>
@@ -190,30 +180,3 @@ function formatForHtml(unsafeText: string): string {
 
     return safeText;
 }
-
-// allow plain 'ol javascript in the html to connect up react
-(window as any).connectErrorReportDialog = (element: Element | null) => {
-    // TODO: Document query string parameters
-
-    const queryStringWithoutQuestionMark = window.location.search.substring(1);
-    const params = new URLSearchParams(queryStringWithoutQuestionMark);
-
-    const severityStr = params.get("sev");
-    let severity: Severity | undefined = Severity[severityStr || ""];
-    if (severity === undefined) {
-        console.assert(
-            severity,
-            `Severity (${severityStr}) could not be parsed.`
-        );
-        severity = Severity.NonFatal;
-    }
-
-    ReactDOM.render(
-        <ErrorReportDialog
-            kind={severity}
-            reportable={params.get("reportable") === "1"}
-            messageParam={params.get("msg")}
-        />,
-        element
-    );
-};

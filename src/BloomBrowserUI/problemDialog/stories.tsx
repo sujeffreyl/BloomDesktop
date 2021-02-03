@@ -4,7 +4,8 @@ import { ThemeProvider } from "@material-ui/styles";
 import { storiesOf } from "@storybook/react";
 import { addDecorator } from "@storybook/react";
 import { StorybookContext } from "../.storybook/StoryBookContext";
-import { ProblemDialog, ProblemKind } from "./ProblemDialog";
+import { ReportDialog, ProblemKind } from "./ProblemDialog";
+import { NotifyDialog } from "./NotifyDialog";
 
 addDecorator(storyFn => (
     <ThemeProvider theme={theme}>
@@ -15,6 +16,13 @@ addDecorator(storyFn => (
 ));
 
 storiesOf("Problem Report", module)
-    .add("NonFatalError", () => <ProblemDialog kind={ProblemKind.NonFatal} />)
-    .add("FatalError", () => <ProblemDialog kind={ProblemKind.Fatal} />)
-    .add("UserProblem", () => <ProblemDialog kind={ProblemKind.User} />);
+    .add("NonFatalError", () => <ReportDialog kind={ProblemKind.NonFatal} />)
+    .add("FatalError", () => <ReportDialog kind={ProblemKind.Fatal} />)
+    .add("UserProblem", () => <ReportDialog kind={ProblemKind.User} />);
+storiesOf("Notify User Dialog", module)
+    .add("NotifyUser, Non-Reportable", () => (
+        <NotifyDialog reportable={false} messageParam="Fake error" />
+    ))
+    .add("NotifyUser, Non-Reportable", () => (
+        <NotifyDialog reportable={true} messageParam="Fake error" />
+    ));

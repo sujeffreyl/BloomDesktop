@@ -22,8 +22,10 @@ import { useDrawAttention } from "../react_components/UseDrawAttention";
 import ReactDOM = require("react-dom");
 import { PrivacyScreen } from "./PrivacyScreen";
 import { useL10n } from "../react_components/l10nHooks";
+import { NotifyDialog } from "./NotifyDialog";
 
 export enum ProblemKind {
+    Notify = "Notify",
     User = "User",
     NonFatal = "NonFatal",
     Fatal = "Fatal"
@@ -37,7 +39,7 @@ enum Mode {
     submissionFailed
 }
 
-export const ProblemDialog: React.FunctionComponent<{
+export const ReportDialog: React.FunctionComponent<{
     kind: ProblemKind;
 }> = props => {
     const [mode, setMode] = useState(Mode.gather);
@@ -417,13 +419,39 @@ function useCtrlEnterToSubmit(callback) {
 
 // allow plain 'ol javascript in the html to connect up react
 (window as any).connectProblemDialog = (element: Element | null) => {
-    const levelQuery = window.location.search;
-    const kind = levelQuery.length > 1 ? levelQuery.substring(1) : "fatal"; // strip off initial "?"
-    const kindProp =
-        kind === "fatal"
-            ? ProblemKind.Fatal
-            : kind === "nonfatal"
-            ? ProblemKind.NonFatal
-            : ProblemKind.User;
-    ReactDOM.render(<ProblemDialog kind={kindProp} />, element);
+    const queryStringWithoutQuestionMark = window.location.search.substring(1);
+    const params = new URLSearchParams(queryStringWithoutQuestionMark);
+    const levelStr = params.get("level");
+
+    let level = parseProblemLevel(levelStr);
+    console.assert(level, `Level "${levelStr}" could not be parsed.`);
+    level = level || ProblemKind.NonFatal; // Default to NonFatal if parsing error.
+
+    if (level === ProblemKind.Notify) {
+        ReactDOM.render(
+            <NotifyDialog
+                reportable={params.get("reportable") === "1"}
+                messageParam={params.get("msg")}
+            />,
+            element
+        );
+    } else {
+        ReactDOM.render(<ReportDialog kind={level} />, element);
+    }
 };
+
+// Case-insensitive parsing of the problem level. (Typescript Enum parsing is case-sensitive).
+function parseProblemLevel(levelStr: string | null): ProblemKind | undefined {
+    switch (levelStr?.toLowerCase()) {
+        case "notify":
+            return ProblemKind.Notify;
+        case "user":
+            return ProblemKind.User;
+        case "nonfatal":
+            return ProblemKind.NonFatal;
+        case "fatal":
+            return ProblemKind.Fatal;
+        default:
+            return undefined;
+    }
+}

@@ -21,6 +21,13 @@ export const kindParams = {
         primaryColor: kNonFatalColor,
         title: "Bloom had a problem",
         l10nKey: "ReportProblemDialog.NonFatalTitle"
+    },
+    // Notify uses many of the same settings as NonFatal
+    Notify: {
+        dialogHeaderColor: kNonFatalColor,
+        primaryColor: kNonFatalColor,
+        title: "Bloom had a problem",
+        l10nKey: "ReportProblemDialog.NonFatalTitle"
     }
 };
 
@@ -60,6 +67,15 @@ export function makeTheme(kind: ProblemKind): Theme {
                     backgroundColor: "#FFFFFF",
                     paddingRight: 20,
                     paddingBottom: 20
+                }
+            },
+            MuiButton: {
+                // Set the text colors of the DialogAction buttons
+                containedPrimary: {
+                    color: "#FFFFFF"
+                },
+                textSecondary: {
+                    color: kindParams[kind.toString()].dialogHeaderColor
                 }
             }
         }
