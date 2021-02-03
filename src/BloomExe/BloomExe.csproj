@@ -84,7 +84,7 @@
 	
 	I believe this is unnecessary on Linux, they usually already have 4 GB virtual address space available.
 	-->
-    <LargeAddressAware>false</LargeAddressAware>
+    <LargeAddressAware>true</LargeAddressAware>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -320,6 +320,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Book\LicenseChecker.cs" />
+    <Compile Include="ErrorReporter\CompositeErrorReporter.cs" />
     <Compile Include="FatalExceptionHandler.cs" />
     <Compile Include="MiscUI\BrowserDialog.cs">
       <SubType>Form</SubType>
@@ -329,7 +330,7 @@
     </Compile>
     <Compile Include="CLI\CreateArtifactsCommand.cs" />
     <Compile Include="Collection\WritingSystem.cs" />
-    <Compile Include="NotifyUserOfProblemLogger.cs" />
+    <Compile Include="ErrorReporter\SentryErrorReporter.cs" />
     <Compile Include="ReactErrorReporter.cs" />
     <Compile Include="Publish\Android\AndroidPublishSettings.cs" />
     <Compile Include="Publish\Android\BloomReaderFileMaker.cs" />

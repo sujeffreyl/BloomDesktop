@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Web.UI;
 using System.Windows.Forms;
 using Bloom.Api;
 using Bloom.MiscUI;
 using Bloom.ToPalaso;
 using Bloom.web.controllers;
 using SIL.Reporting;
-//using SIL.Windows.Forms.Reporting;
 
 namespace Bloom
 {
@@ -65,11 +62,9 @@ namespace Bloom
 		}
 	}
 
-	// REVIEW: Should the name be BloomErrorReporter or BloomReactErrorReporter, consider we make Sentry calls here?
+	// REVIEW: Should the name be BloomErrorReporter or BloomReactErrorReporter
 	public class ReactErrorReporter: IErrorReporter
 	{
-		// TODO: Add Sentry reporting functionality
-
 		private ReactErrorReporter()
 		{
 		}
@@ -99,15 +94,30 @@ namespace Bloom
 		static object _showingDialogLock = new object();
 
 
-		// TODO: Handle IRepeatNoticePolicy
+		/// <summary>
+		/// Notifies the user of a problem, using a React-based dialog.
+		/// Note: These are considered to be non-fatal notifications.
+		/// </summary>
+		/// <param name="policy">Checks if we should notify the user, based on the contents of {message}</param>
+		/// <param name="alternateButton1Label">Text for the button the user should click to initiate the alternate action</param>
+		/// <param name="resultIfAlternateButtonPressed"></param>
+		/// <param name="message"></param>
+		/// <returns>Currently, always returns ErrorResult.OK</returns>
 		public ErrorResult NotifyUserOfProblem(IRepeatNoticePolicy policy, string alternateButton1Label, ErrorResult resultIfAlternateButtonPressed, string message)
 		{
-			ShowDialog(kNonFatal, message, null);
+			// TODO: Deal with ErrorResult resultIfAlternateButtonPressed
+			if (policy.ShouldShowMessage(message))
+			{
+				ShowDialog(kNonFatal, message, null);
+			}
+
 			return ErrorResult.OK;
 		}
 
 		public void ReportNonFatalException(Exception exception, IRepeatNoticePolicy policy)
 		{
+			// REVIEW: Since it has "Report" in the name, maybe we should pass it directly to Problem Report Dialog???
+			// (Likewise for the subsequent 4 functions)
 			ShowDialog(kNonFatal, null, exception);
 		}
 
@@ -134,8 +144,6 @@ namespace Bloom
 		{
 			ShowDialog(kFatal, String.Format(message, args), null, new StackTrace());
 		}
-
-
 
 		private void ShowDialog(string severity,
             string messageText = "", Exception exception = null, StackTrace stackTrace = null)

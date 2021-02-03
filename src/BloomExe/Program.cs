@@ -34,6 +34,7 @@ using Sentry.Protocol;
 using SIL.Windows.Forms.HtmlBrowser;
 using SIL.WritingSystems;
 using SIL.Xml;
+using Bloom.ErrorReporter;
 
 namespace Bloom
 {
@@ -1199,7 +1200,9 @@ namespace Bloom
 				}
 			}
 
-			ErrorReport.SetErrorReporter(ReactErrorReporter.Instance);
+			var orderedReporters = new IErrorReporter[] { SentryErrorReporter.Instance, ReactErrorReporter.Instance };
+			var reactAndSentryReporter = new CompositeErrorReporter(orderedReporters, primaryReporter: ReactErrorReporter.Instance);
+			ErrorReport.SetErrorReporter(reactAndSentryReporter);
 
 
 			string issueTrackingUrl = UrlLookup.LookupUrl(UrlType.IssueTrackingSystem);
