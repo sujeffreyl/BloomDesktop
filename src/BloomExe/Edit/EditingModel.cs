@@ -27,6 +27,7 @@ using SIL.Windows.Forms.ClearShare;
 using SIL.Windows.Forms.ImageToolbox;
 using SIL.Windows.Forms.Reporting;
 using SIL.Xml;
+using Bloom.ErrorReporter;
 
 namespace Bloom.Edit
 {
@@ -581,6 +582,8 @@ namespace Bloom.Edit
 				return;
 			}
 
+			CheckForFakeTestErrorsIfNotRealUser();
+
 			// BL-2339: try to choose the last edited page
 			var page = _currentlyDisplayedBook.GetPageByIndex(_currentlyDisplayedBook.UserPrefs.MostRecentPage) ?? _currentlyDisplayedBook.FirstPage;
 			try
@@ -597,6 +600,77 @@ namespace Bloom.Edit
 			finally
 			{
 				_inProcessOfLoading = false;
+			}
+		}
+
+		private void CheckForFakeTestErrorsIfNotRealUser()
+		{
+			// A real user is defined as one using a Release build and with feedback enabled.
+			// Skip these checks for real users, so there's no possibility of them getting spurious error reports
+			// from this code (even if the titles required are unlikely real titles)
+			#if DEBUG
+				bool checkAllowed = true;
+			#else
+				bool checkAllowed = !Program.AllowTracking;
+			#endif
+
+			if (checkAllowed)
+			{
+				CheckForFakeTestErrors();
+			}
+		}
+
+		/// <summary>
+		/// Generates Error Reports for books with specific titles
+		/// Facilitates testing of error reporting.
+		/// </summary>
+		private void CheckForFakeTestErrors()
+		{
+			const string fakeProblemMessage = "Fake problem for development/testing purposes";
+			var fakeException = new ApplicationException("Fake exception for development/testing purposes");
+
+			var title = _currentlyDisplayedBook.Title;
+			if (title == "Error NotifyUser")
+			{
+				// This tests the default path, through libPalaso
+				ErrorReport.NotifyUserOfProblem(fakeProblemMessage);
+			}
+			else if (title == "Error NotifyUser NoReport")
+			{
+				ErrorReportUtils.NotifyUserOfProblem(false, "", ErrorReportUtils.TestAction, null, fakeProblemMessage);
+			}
+			else if (title == "Error NotifyUser Report Retry")
+			{
+				ErrorReportUtils.NotifyUserOfProblem(true, "ErrorReportDialog.Retry", ErrorReportUtils.TestAction, null, fakeProblemMessage);
+			}
+			else if (title == "Error ReportNonFatalException")
+			{
+				ErrorReport.ReportNonFatalException(fakeException);
+			}
+			else if (title == "Error ReportNonFatalExceptionWithMessage")
+			{
+				ErrorReport.ReportNonFatalExceptionWithMessage(fakeException, fakeProblemMessage);
+			}
+			else if (title == "Error ReportNonFatalExceptionWithMessage Scrollbar")
+			{
+				var longMessageBuilder = new StringBuilder();
+				while (longMessageBuilder.Length < 500)
+				{
+					longMessageBuilder.AppendLine(fakeProblemMessage);
+				}
+				ErrorReport.ReportNonFatalExceptionWithMessage(fakeException, longMessageBuilder.ToString());
+			}
+			else if (title == "Error ReportNonFatalMessageWithStackTrace")
+			{
+				ErrorReport.ReportNonFatalMessageWithStackTrace(fakeProblemMessage);
+			}
+			else if (title == "Error ReportFatalException")
+			{
+				ErrorReport.ReportFatalException(fakeException);
+			}
+			else if (title == "Error ReportFatalMessageWithStackTrace")
+			{
+				ErrorReport.ReportFatalMessageWithStackTrace(fakeProblemMessage);
 			}
 		}
 

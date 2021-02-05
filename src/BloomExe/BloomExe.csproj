@@ -322,6 +322,7 @@
     <Compile Include="Book\LicenseChecker.cs" />
     <Compile Include="ErrorReporter\CompositeErrorReporter.cs" />
     <Compile Include="ErrorReporter\ErrorReportUtils.cs" />
+    <Compile Include="ErrorReporter\ProblemLevel.cs" />
     <Compile Include="FatalExceptionHandler.cs" />
     <Compile Include="MiscUI\BrowserDialog.cs">
       <SubType>Form</SubType>

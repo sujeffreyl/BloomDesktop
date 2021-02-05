@@ -8,22 +8,32 @@ namespace Bloom.ErrorReporter
 {
 	public class ErrorReportUtils
 	{
-		// Facade around ErrorReport.NotifyUserOfProblem, but allows specifying allowReport and alternateAction
-		public static void NotifyUserOfProblem(bool allowReport, Action alternateAction, Exception error, string messageFmt, params object[] args)
+		/// <summary>
+		/// Facade around ErrorReport.NotifyUserOfProblem, but allows customizing the Report and alternate action buttons
+		/// </summary>
+		/// <param name="allowReport">If true, causes a Report button to be added which allows the user to submit an issue to YouTrack</param>
+		/// <param name="alternateButtonLabelL10nKey">The L10n key of the text that should go on the alternate action button.</param>
+		/// <param name="alternateAction">The action to perform if the alternate action is pressed.</param>
+		/// <param name="error">The exception encountered, if anyr</param>
+		/// <param name="messageFmt">Optional - a string to display to the user. May be a format string.</param>
+		/// <param name="args">Optional - arguments for the format string</param>
+		public static void NotifyUserOfProblem(bool allowReport, string alternateButtonLabelL10nKey, Action<Exception, string> alternateAction, Exception error, string messageFmt, params object[] args)
 		{
-			SetupReactErrorReporter(allowReport, alternateAction);
+			SetupHtmlErrorReporter(allowReport, alternateButtonLabelL10nKey, alternateAction);
 			ErrorReport.NotifyUserOfProblem(error, messageFmt, args);
 		}
 
-		private static void SetupReactErrorReporter(bool allowReport, Action alternateAction)
+		// TODO: Support for other overloads?
+
+		private static void SetupHtmlErrorReporter(bool allowReport, string alternateButtonLabelL10nKey, Action<Exception, string> alternateAction)
 		{
 			HtmlErrorReporter.Instance.AllowReportOnNextNotify = allowReport;
-			HtmlErrorReporter.Instance.OnAlternatePressed= alternateAction;
+			HtmlErrorReporter.Instance.AltLabelL10nKey = alternateButtonLabelL10nKey;
+			HtmlErrorReporter.Instance.OnAlternatePressed = alternateAction;
 		}
 
 		#region Premade Alternate Actions
-		// TODO: Remove me and helloWorld.html
-		internal static void TestAction()
+		internal static void TestAction(Exception error, string message)
 		{
 			var rootPath = BloomFileLocator.GetBrowserFile(false, "errorReport", "helloWorld.html");
 			var url = rootPath.ToLocalhost();
@@ -33,7 +43,7 @@ namespace Bloom.ErrorReporter
 			}
 		}
 
-		internal static void NoAction()
+		internal static void NoAction(Exception error, string message)
 		{
 		}
 		#endregion

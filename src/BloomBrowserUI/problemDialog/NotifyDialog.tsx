@@ -8,7 +8,7 @@ import {
     Typography
 } from "@material-ui/core";
 import { BloomApi } from "../utils/bloomApi";
-import { makeStyles, ThemeProvider, withStyles } from "@material-ui/styles";
+import { makeStyles, ThemeProvider } from "@material-ui/styles";
 import "./ProblemDialog.less";
 import BloomButton from "../react_components/bloomButton";
 import { makeTheme, kindParams } from "./theme";
@@ -19,9 +19,11 @@ import { ProblemKind } from "./ProblemDialog";
 const kEdgePadding = "24px";
 export const NotifyDialog: React.FunctionComponent<{
     reportable: boolean;
+    altL10nKey: string | null;
     messageParam: string | null;
 }> = props => {
     const theme = makeTheme(ProblemKind.NonFatal);
+
     const englishTitle = kindParams[ProblemKind.NonFatal].title;
     const titleKey = kindParams[ProblemKind.NonFatal].l10nKey;
     const localizedDlgTitle = useL10n(englishTitle, titleKey);
@@ -34,99 +36,8 @@ export const NotifyDialog: React.FunctionComponent<{
         }
     );
 
-    const useContentStyle = makeStyles({
-        root: {
-            padding: `27px ${kEdgePadding}`
-        }
-    });
-
-    // Assuming we've tried to submit a report (no matter the result),
-    // this will give us either a Close or Quit button.
-    const getEndingButton = (): JSX.Element | null => {
+    const getDialog = () => {
         return (
-            <BloomButton
-                enabled={true}
-                l10nKey={"ReportProblemDialog.Close"}
-                hasText={true}
-                onClick={() => {
-                    BloomApi.post("dialog/close");
-                }}
-            >
-                Close
-            </BloomButton>
-        );
-    };
-
-    // Shows the action buttons, as appropriate.
-    const getDialogActionButtons = (): JSX.Element => {
-        const useRightStyle = makeStyles({
-            // So that the right edge of the "Close" button will line up with the right edge of the ContentText
-            root: {
-                paddingRight: "0px"
-            }
-        });
-
-        const useLeftStyle = makeStyles({
-            // So that the left edge of the "Report" button will line up with the left edge of the ContentText
-            root: {
-                paddingLeft: "0px"
-            },
-            // So that the left edge of the "Report" text will line up with the left edge of the button
-            text: {
-                paddingLeft: "0px"
-            }
-        });
-        return (
-            <>
-                <div className="twoColumnHolder">
-                    {/* Note: twoColumnHolder is a flexbox with row-reverse, so the 1st one is the right-most.
-                        Using row-reverse allows us to skip putting an empty leftActions, which is theoretically one less thing to render
-                    */}
-                    <DialogActions className={useRightStyle().root}>
-                        <BloomButton
-                            enabled={true}
-                            l10nKey="ErrorReportDialog.Retry"
-                            hasText={true}
-                            variant="text"
-                            color="secondary"
-                            onClick={() => {
-                                BloomApi.postData("dialog/close", {
-                                    source: "alternate"
-                                });
-                            }}
-                        >
-                            Secondary Action
-                        </BloomButton>
-                        {getEndingButton()}
-                    </DialogActions>
-                    {props.reportable && (
-                        <DialogActions className={useLeftStyle().root}>
-                            <BloomButton
-                                className={`errorReportButton ${
-                                    useLeftStyle().text
-                                }`}
-                                enabled={true}
-                                l10nKey="ErrorReportDialog.Report"
-                                hasText={true}
-                                variant="text"
-                                color="secondary"
-                                onClick={() => {
-                                    BloomApi.postData("dialog/close", {
-                                        source: "report"
-                                    });
-                                }}
-                            >
-                                Report
-                            </BloomButton>
-                        </DialogActions>
-                    )}
-                </div>
-            </>
-        );
-    };
-
-    return (
-        <ThemeProvider theme={theme}>
             <Dialog
                 className="problem-dialog"
                 open={true}
@@ -139,7 +50,9 @@ export const NotifyDialog: React.FunctionComponent<{
                 {/* The whole disableTypography and Typography thing gets around Material-ui putting the
                     Close icon inside of the title's Typography element, where we don't have control over its CSS. */}
                 <DialogTitle
-                    className="dialog-title notify-dialog-title allowSelect"
+                    className={`dialog-title allowSelect ${
+                        useTitleStyle().root
+                    }`}
                     disableTypography={true}
                 >
                     <Typography variant="h6">{localizedDlgTitle}</Typography>
@@ -160,8 +73,118 @@ export const NotifyDialog: React.FunctionComponent<{
                 </DialogContent>
                 {getDialogActionButtons()}
             </Dialog>
-        </ThemeProvider>
-    );
+        );
+    };
+
+    const useTitleStyle = makeStyles({
+        root: {
+            padding: `6px ${kEdgePadding}`
+        }
+    });
+
+    const useContentStyle = makeStyles({
+        root: {
+            padding: `27px ${kEdgePadding}`
+        }
+    });
+
+    // Shows the action buttons, as appropriate.
+    const getDialogActionButtons = (): JSX.Element => {
+        const useTwoColumnHolderStyle = makeStyles({
+            root: {
+                display: "flex",
+                // Use space-between so that when we have both #left and #right, they are split out to the outside edges
+                justifyContent: "space-between",
+                // Use row-reverse instead of reverse so that when reportable is false, the only DialogActions group
+                // will be placed at the start (that is, the right). In standard "row", the start is the left
+                // but that's not where we want it to go.
+                flexDirection: "row-reverse",
+
+                paddingLeft: kEdgePadding,
+                paddingRight: kEdgePadding
+            }
+        });
+        const useRightStyle = makeStyles({
+            // So that the right edge of the "Close" button will line up with the right edge of the ContentText
+            root: {
+                paddingRight: "0px"
+            }
+        });
+
+        const useLeftStyle = makeStyles({
+            // So that the left edge of the "Report" button will line up with the left edge of the ContentText
+            root: {
+                paddingLeft: "0px"
+            },
+            // So that the left edge of the "Report" text will line up with the left edge of the button
+            text: {
+                paddingLeft: "0px"
+            }
+        });
+
+        return (
+            <div className={useTwoColumnHolderStyle().root}>
+                {/* Note: twoColumnHolder is a flexbox with row-reverse, so the 1st one is the right-most.
+                        Using row-reverse allows us to skip putting an empty leftActions, which is theoretically one less thing to render
+                    */}
+                <DialogActions className={useRightStyle().root}>
+                    {props.altL10nKey && (
+                        <BloomButton
+                            enabled={true}
+                            l10nKey={props.altL10nKey}
+                            hasText={true}
+                            variant="text"
+                            onClick={() => {
+                                BloomApi.postData("dialog/close", {
+                                    source: "alternate"
+                                });
+                            }}
+                        >
+                            Secondary Action
+                        </BloomButton>
+                    )}
+                    {getCloseButton()}
+                </DialogActions>
+                {props.reportable && (
+                    <DialogActions className={useLeftStyle().root}>
+                        <BloomButton
+                            className={`errorReportButton ${
+                                useLeftStyle().text
+                            }`}
+                            enabled={true}
+                            l10nKey="ErrorReportDialog.Report"
+                            hasText={true}
+                            variant="text"
+                            onClick={() => {
+                                BloomApi.postData("dialog/close", {
+                                    source: "report"
+                                });
+                            }}
+                        >
+                            Report
+                        </BloomButton>
+                    </DialogActions>
+                )}
+            </div>
+        );
+    };
+
+    const getCloseButton = (): JSX.Element | null => {
+        return (
+            <BloomButton
+                enabled={true}
+                l10nKey={"ReportProblemDialog.Close"}
+                hasText={true}
+                onClick={() => {
+                    BloomApi.post("dialog/close");
+                }}
+            >
+                Close
+            </BloomButton>
+        );
+    };
+
+    return <ThemeProvider theme={theme}>{getDialog()}</ThemeProvider>;
 };
 
 // Takes in an unsafe piece of text, and readies it to be displayed in HTML.

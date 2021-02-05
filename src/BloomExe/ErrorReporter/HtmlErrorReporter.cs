@@ -12,14 +12,15 @@ using SIL.Windows.Forms.Reporting;
 
 namespace Bloom.ErrorReporter
 {
+	/// <summary>
+	/// An Error Reporter designed to be used with libpalaso's ErrorReport.
+	/// </summary>
 	public class HtmlErrorReporter: IErrorReporter
 	{
 		private HtmlErrorReporter()
 		{
+			ResetToDefaults();
 		}
-
-		public const string kNonFatal = "NonFatal";
-		public const string kFatal = "Fatal";
 
 		private static HtmlErrorReporter _instance;
 		public static HtmlErrorReporter Instance
@@ -35,22 +36,37 @@ namespace Bloom.ErrorReporter
 		}
 
 		// TODO: What if multiple threads trying to set this.
-		public bool AllowReportOnNextNotify { get; set; } = false;
-		public Action OnAlternatePressed { get; set; } = null;
+		public bool AllowReportOnNextNotify { get; set; } = true;
+		// The L10n key of the label text of the alternate action button.
+		// e.g. for "Retry", you might put the key ErrorReportApi.Retry
+		// To disable the alternate action, set this to null or ""
+		public string AltLabelL10nKey { get; set; }
+		public Action<Exception, string> OnAlternatePressed { get; set; } = null;
 
 		private bool _showingDialog = false;
 		static object _showingDialogLock = new object();
 
+		private void ResetToDefaults()
+		{
+			ErrorReport.OnShowDetails = null;
+			AllowReportOnNextNotify = true;	// Historically, WinFormsErrorReporter shows the Details (equivalent to Report) button, so default this to true.
+			AltLabelL10nKey = null;
+			OnAlternatePressed = null;
+		}
 
+		#region IErrorReporter interface
 		/// <summary>
 		/// Notifies the user of a problem, using a React-based dialog.
 		/// Note: These are considered to be non-fatal notifications.
+		/// Note: Most of the parameters are mostly just relevant to LibPalaso.
 		/// </summary>
 		/// <param name="policy">Checks if we should notify the user, based on the contents of {message}</param>
-		/// <param name="alternateButton1Label">Text for the button the user should click to initiate the alternate action</param>
-		/// <param name="resultIfAlternateButtonPressed"></param>
-		/// <param name="message"></param>
-		/// <returns>Currently, always returns ErrorResult.OK</returns>
+		/// <param name="alternateButton1Label">This is ignored, because the main caller (LibPalaso ErrorReport) always passses "Details".
+		/// This class uses the value determined by this.AltLabelL10nKey instead.</param>
+		/// <param name="resultIfAlternateButtonPressed">This is the value that this method should return so that the caller (mainly LibPalaso ErrorReport)
+		/// can know if the alternate button was pressed, and if so, it will invoke ErrorReport.OnShowDetails().</param>
+		/// <param name="message">The message to show to the user</param>
+		/// <returns>If the alternate button was pressed, returns {resultIfAlternateButtonPressed}. Otherwise, ErrorResult.OK</returns>
 		public ErrorResult NotifyUserOfProblem(IRepeatNoticePolicy policy, string alternateButton1Label, ErrorResult resultIfAlternateButtonPressed, string message)
 		{
 			try
@@ -58,9 +74,14 @@ namespace Bloom.ErrorReporter
 				ErrorResult result = ErrorResult.OK;
 				if (policy.ShouldShowMessage(message))
 				{
-					result = ShowNotifyDialog(kNonFatal, message, null, resultIfAlternateButtonPressed);
+					// TODO: Check if
+					//if (!string.IsNullOrEmpty(alternateButton1Label))
+					ErrorReport.OnShowDetails = null;
+					result = ShowNotifyDialog(ProblemLevel.kNonFatal, message, null, resultIfAlternateButtonPressed);
 				}
-			
+
+				ResetToDefaults();
+
 				return result;
 			}
 			catch (Exception e)
@@ -76,40 +97,55 @@ namespace Bloom.ErrorReporter
 		{
 			// Note: I think it's better to call ProblemReportApi directly, rather than passing through NonFatalProblem first.
 			// Otherwise you have to deal with ModalIf, PassiveIf, and you also have to worry about whether Sentry will happen twice.
-			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, exception, null, kNonFatal.ToLowerInvariant());
+			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, exception, null, ProblemLevel.kNonFatal);
 		}
 
-		public void ReportNonFatalExceptionWithMessage(Exception error, string message, params object[] args)
+		public void ReportNonFatalExceptionWithMessage(Exception error, string messageFormat, params object[] args)
 		{
 			// TODO: Think about what the right value of Form is. Should we allow the caller to specify it?
-			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, error, String.Format(message, args), kNonFatal.ToLowerInvariant());
+			var message = String.Format(messageFormat, args);
+			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, error, message , ProblemLevel.kNonFatal);
 		}
 
-		public void ReportNonFatalMessageWithStackTrace(string message, params object[] args)
+		public void ReportNonFatalMessageWithStackTrace(string messageFormat, params object[] args)
 		{
 			var stackTrace = new StackTrace(true);
-			string textToReport = FormatMessageWithStackTrace(stackTrace, message, args);
-			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, null, textToReport, kNonFatal.ToLowerInvariant());
+			var userLevelMessage = String.Format(messageFormat, args);
+			string detailedMessage = FormatMessageWithStackTrace(userLevelMessage, stackTrace);
+			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, null, detailedMessage, ProblemLevel.kNonFatal, userLevelMessage);
 		}
 
 		public void ReportFatalException(Exception e)
 		{
-			// TODO: Does it need a short message?, so that the exception message doesn't get printed out there.
-			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, e, null, kFatal.ToLowerInvariant());
+			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, e, null, ProblemLevel.kFatal);
+			Quit();
 		}
 
-		public void ReportFatalMessageWithStackTrace(string message, object[] args)
+		public void ReportFatalMessageWithStackTrace(string messageFormat, object[] args)
 		{
-			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, null, String.Format(message, args), kFatal.ToLowerInvariant());
+			var stackTrace = new StackTrace(true);
+			var userLevelMessage = String.Format(messageFormat, args);
+			string detailedMessage = FormatMessageWithStackTrace(userLevelMessage, stackTrace);
+			ProblemReportApi.ShowProblemDialog(Form.ActiveForm, null, detailedMessage, ProblemLevel.kFatal, userLevelMessage);
+			Quit();
 		}
+		#endregion
 
-		private string FormatMessageWithStackTrace(StackTrace stackTrace, string messageFormat, params object[] args)
-		{
-			return $"Message (not an exception): {String.Format(messageFormat, args)}" + Environment.NewLine
+		private string FormatMessageWithStackTrace(string message, StackTrace stackTrace)
+        {
+			return $"Message (not an exception): {message}" + Environment.NewLine
 				+ Environment.NewLine
 				+ "--Stack--" + Environment.NewLine
 				+ stackTrace.ToString();
 		}
+
+		internal static UrlPathString GetMessage(string detailedMessage, Exception exception)
+		{
+			string textToReport = !string.IsNullOrEmpty(detailedMessage) ? detailedMessage : exception.Message;
+			return UrlPathString.CreateFromUnencodedString(textToReport, true);
+		}
+
+		private static void Quit() => Process.GetCurrentProcess().Kill();	// Same way WinFormsErrorReporter quits
 
 		private ErrorResult ShowNotifyDialog(string severity,
             string messageText = "", Exception exception = null, ErrorResult resultIfAlternatePressed = ErrorResult.OK)
@@ -151,8 +187,8 @@ namespace Bloom.ErrorReporter
 					
 					var problemDialogRootPath = BloomFileLocator.GetBrowserFile(false, "problemDialog", "loader.html");
 
-					var query = $"?level=notify&reportable={(AllowReportOnNextNotify ? 1 : 0)}";
-					//var query = $"?sev={severity}&reportable={(AllowReportOnNextNotify ? 1 : 0)}";
+					var query = $"?level={ProblemLevel.kNotify}&reportable={(AllowReportOnNextNotify ? 1 : 0)}"
+						+ (String.IsNullOrEmpty(AltLabelL10nKey) ? "" : $"&altl10n={AltLabelL10nKey}");					
 					var url = problemDialogRootPath.ToLocalhost() + query;
 
 					// Prefer putting the message in the URL parameters, so it can just be a simple one-and-done GET request.
@@ -166,7 +202,8 @@ namespace Bloom.ErrorReporter
 						url += $"&msg={encodedMessage}";
 					}
 					else
-					{						
+					{
+						// TODO: Consolidate with ProblemReportAPI
 						ErrorReportApi.Message = message.NotEncoded;
 					}
 					
@@ -195,17 +232,25 @@ namespace Bloom.ErrorReporter
 							// Take action if the user clicked a button other than Close
 							if (BrowserDialogApi.LastCloseSource == "alternate")
 							{
-								this.OnAlternatePressed?.Invoke();
+								// OnShowDetails will be invoked if this method returns {resultIfAlternateButtonPressed}
+								// FYI, setting to null is OK. It should cause ErrorReport to reset to default handler.
+								ErrorReport.OnShowDetails = OnAlternatePressed;
+
 								returnResult = resultIfAlternatePressed;
 							}
 							else if (BrowserDialogApi.LastCloseSource == "report")
 							{
-								// TODO: This needs a L10N key. And the right copy.
-								var shortMessage = severity == kFatal ? "Bloom reported a fatal problem" : "Bloom reported a non-fatal problem";
-								ProblemReportApi.ShowProblemDialog(control, exception, messageText, severity.ToLowerInvariant(), shortMessage);
+								//// TODO: This needs a L10N key. And the right copy.
+								//var shortMessage = severity == kFatal ? "Bloom reported a fatal problem" : "Bloom reported a non-fatal problem";
+								//ProblemReportApi.ShowProblemDialog(control, exception, messageText, severity.ToLowerInvariant(), shortMessage);
 
-								// TODO: Theoretically, shouldn't we come back to the same dialog?
+								ErrorReport.OnShowDetails = OnReportPressed;
+								returnResult = resultIfAlternatePressed;
 							}
+							// REVIEW / ENHANCE: Should we come back to the same dialog afterwards?
+							// Now that we have more options, it might be nice.
+							// But, the control flow from LibPalaso ErrorReport indicates that the suggestion is you can only take one of the actions
+							// and then the notifier will go away after it's done.
 						}
 						finally
 						{
@@ -241,10 +286,11 @@ namespace Bloom.ErrorReporter
 			return returnResult;
 		}
 
-		internal static UrlPathString GetMessage(string detailedMessage, Exception exception)
+		public static void OnReportPressed(Exception error, string message)
 		{
-			string textToReport = !string.IsNullOrEmpty(detailedMessage) ? detailedMessage : exception.Message;
-			return UrlPathString.CreateFromUnencodedString(textToReport, true);
+			// TODO: How do you want to massage message?
+			// "Bloom reported a non-fatal problem"
+			ErrorReport.ReportNonFatalExceptionWithMessage(error, message);
 		}
 	}
 }

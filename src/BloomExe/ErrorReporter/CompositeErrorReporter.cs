@@ -5,10 +5,16 @@ using System.Linq;
 
 namespace Bloom.ErrorReporter
 {
+	/// <summary>
+	/// An error reporter that combines the actions of multiple error reporters.
+	/// </summary>
 	class CompositeErrorReporter : IErrorReporter
 	{
-		private IErrorReporter PrimaryReporter { get; set; }
+		// The reporters whose actions should be combined. It should be ordered in the order that the actions should execute.
 		private IList<IErrorReporter> Reporters { get; set; }
+
+		// For methods that return a value, the result of the CompositeErrorReporter will be the value from PrimaryReporter
+		private IErrorReporter PrimaryReporter { get; set; }
 
 		/// <summary>
 		/// Creates a composite error reporter consisting of one primary reporter and any number of secondary reporters.

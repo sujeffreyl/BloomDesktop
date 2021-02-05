@@ -33,21 +33,5 @@ namespace BloomTests.ErrorReporter
 			var result = HtmlErrorReporter.GetMessage("message text", exception);
 			Assert.AreEqual("message text", result.NotEncoded);
 		}
-
-		//[Test]
-		//public void GetMessage_TextAndStackTrace_ReturnsTextFollowedByStackTrace()
-		//{
-		//	var stackTrace = new StackTrace();
-		//	var stackString = stackTrace.ToString();
-
-		//	var result = HtmlErrorReporter.GetMessage("message text", null, stackTrace);
-
-
-		//	var expected = $"Message (not an exception): message text" + Environment.NewLine
-		//				+ Environment.NewLine
-		//				+ "--Stack--" + Environment.NewLine
-		//				+ stackString.TrimEnd();	// because URLPathString calls Trim()
-		//	Assert.AreEqual(expected, result.NotEncoded);
-		//}
 	}
 }

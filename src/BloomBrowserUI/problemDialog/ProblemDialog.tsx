@@ -166,28 +166,32 @@ export const ReportDialog: React.FunctionComponent<{
     );
     const localizedDone = useL10n("Done", "Common.Done");
 
-    const needCancelButton = (): boolean => {
-        return mode === Mode.gather && props.kind === ProblemKind.User;
-    };
-
-    // Assuming we've tried to submit a report (no matter the result),
-    // this will give us either a Close or Quit button.
-    const getEndingButtonIfAppropriate = (): JSX.Element | null => {
-        if (mode !== Mode.submitted && mode !== Mode.submissionFailed) {
-            return null;
+    // Gives us a Cancel, Close, or Quit button.
+    const getEndingButton = (): JSX.Element | null => {
+        let l10nKey: string;
+        let text: string;
+        if (mode === Mode.gather && props.kind === ProblemKind.User) {
+            l10nKey = "Common.Cancel";
+            text = "Cancel";
+        } else {
+            // Note: At one point, we only included this button if mode was not Submitted nor SubmissionFailed.
+            // Now, we include it all the time. Since we have Sentry reporting too, there's less need to
+            // try to funnel people towards submitting.
+            text = props.kind === ProblemKind.Fatal ? "Quit" : "Close";
+            l10nKey = `ReportProblemDialog.${text}`;
         }
-        const keyword = props.kind === ProblemKind.Fatal ? "Quit" : "Close";
-        const l10nKey = `ReportProblemDialog.${keyword}`;
+
         return (
             <BloomButton
                 enabled={true}
                 l10nKey={l10nKey}
                 hasText={true}
+                variant="outlined"
                 onClick={() => {
                     BloomApi.post("dialog/close");
                 }}
             >
-                {keyword}
+                {text}
             </BloomButton>
         );
     };
@@ -199,7 +203,6 @@ export const ReportDialog: React.FunctionComponent<{
     const getDialogActionButtons = (): JSX.Element => {
         return (
             <>
-                {getEndingButtonIfAppropriate()}
                 {mode === Mode.gather && (
                     <BloomButton
                         enabled={true}
@@ -213,19 +216,7 @@ export const ReportDialog: React.FunctionComponent<{
                         Submit
                     </BloomButton>
                 )}
-                {needCancelButton() && (
-                    <BloomButton
-                        enabled={true}
-                        l10nKey="Common.Cancel"
-                        hasText={true}
-                        variant="outlined"
-                        onClick={() => {
-                            BloomApi.post("dialog/close");
-                        }}
-                    >
-                        Cancel
-                    </BloomButton>
-                )}
+                {getEndingButton()}
             </>
         );
     };
@@ -300,12 +291,12 @@ export const ReportDialog: React.FunctionComponent<{
                             case Mode.gather:
                                 return (
                                     <>
-                                        <div
+                                        <Typography
                                             className="report-heading allowSelect"
                                             dangerouslySetInnerHTML={{
                                                 __html: reportHeadingHtml
                                             }}
-                                        />
+                                        ></Typography>
                                         <Typography id="please_help_us">
                                             {localizedPleaseHelpUs}
                                         </Typography>
@@ -431,6 +422,7 @@ function useCtrlEnterToSubmit(callback) {
         ReactDOM.render(
             <NotifyDialog
                 reportable={params.get("reportable") === "1"}
+                altL10nKey={params.get("altl10n")}
                 messageParam={params.get("msg")}
             />,
             element

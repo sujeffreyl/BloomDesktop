@@ -383,7 +383,6 @@ namespace Bloom.Book
 			string errors = ValidateBook(Dom, tempPath);
 			watch.Stop();
 			TroubleShooterDialog.Report($"Validating book took {watch.ElapsedMilliseconds} milliseconds");
-			errors = "Fake Error for development";
 
 			if (!String.IsNullOrEmpty(errors))
 			{
@@ -397,39 +396,13 @@ namespace Bloom.Book
 					RobustFile.ReadAllText(badFilePath));
 				var ex = new XmlSyntaxException(errors);
 
-				// ENHANCE: If it's going to kill the Bloom process right afterward, seems like it could call the fatal error version instead...
-
-				//ErrorReport.NotifyUserOfProblem(ex,
-
-				// Method 0
-				ErrorReportUtils.NotifyUserOfProblem(true, ErrorReportUtils.TestAction, ex,
+				// ENHANCE: If it's going to kill the process right afterward, seems like we could call the FatalMessage version instead...
+				ErrorReport.NotifyUserOfProblem(ex,
 					"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
 					badFilePath +
 					".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
 
-				// Method 1
-				// ErrorReport.ReportNonFatalException(ex, new ShowAlwaysPolicy());
-
-				// Method 2
-				//ErrorReport.ReportNonFatalExceptionWithMessage(ex,
-				//	"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
-				//	badFilePath +
-				//	".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
-
-				// Method 3
-				//ErrorReport.ReportNonFatalMessageWithStackTrace(
-				//	"Before saving, Bloom did an integrity check of your book, and found something wrong. This doesn't mean your work is lost, but it does mean that there is a bug in the system or templates somewhere, and the developers need to find and fix the problem (and your book).  Please click the 'Details' button and send this report to the developers.  Bloom has saved the bad version of this book as " +
-				//	badFilePath +
-				//	".  Bloom will now exit, and your book will probably not have this recent damage.  If you are willing, please try to do the same steps again, so that you can report exactly how to make it happen.");
-
-				// Method 4
-				// ErrorReport.ReportFatalException(ex);
-
-				// Method 5
-				// ErrorReport.ReportFatalMessageWithStackTrace("Test fatal message #{0}", 1);
-
-				// TODO: Re-enable me
-				// Process.GetCurrentProcess().Kill();
+				Process.GetCurrentProcess().Kill();
 			}
 			else
 			{

@@ -351,13 +351,15 @@ namespace Bloom.web.controllers
 
 		// TODO: Reduce duplication in ReactErrorReport and ProblemReportApi code. Maybe some of the ProblemReportApi code can move to ErrorReporter code.
 
+		// ENHANCE: I think levelOfProblem would benefit from being required and being an enum.
+
 		/// <summary>
 		/// Shows a problem dialog.
 		/// </summary>
 		/// <param name="controlForScreenshotting"></param>
 		/// <param name="exception"></param>
 		/// <param name="detailedMessage"></param>
-		/// <param name="levelOfProblem"></param>
+		/// <param name="levelOfProblem">"user", "nonfatal", or "fatal"</param>
 		public static void ShowProblemDialog(Control controlForScreenshotting, Exception exception,
 			string detailedMessage = "", string levelOfProblem = "user", string shortUserLevelMessage = "", bool isShortMessagePreEncoded = false)
 		{
@@ -412,7 +414,8 @@ namespace Bloom.web.controllers
 					using (var dlg = new BrowserDialog(url))
 					{
 						// The default height is not quite enough to show the contents without scrolling.
-						dlg.Height += 30;
+						// (Note: This has enough room for the book title to take up 2 lines.)
+						dlg.Height += 45;
 
 						// ShowDialog will cause this thread to be blocked (because it spins up a modal) until the dialog is closed.
 						BloomServer._theOneInstance.RegisterThreadBlocking();
