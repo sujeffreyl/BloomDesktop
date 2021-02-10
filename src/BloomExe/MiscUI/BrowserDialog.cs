@@ -1,13 +1,25 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using Bloom.Api;
 using Bloom.web;
 using SIL.Reporting;
 
 namespace Bloom.MiscUI
 {
-	public partial class BrowserDialog : Form
+	// This interfaces allows the unit tests to mock a BrowserDialog
+	// when it's undesirable to spin up a real one.
+	public interface IBrowserDialog : IDisposable
+	{
+		int Width { get; set; }
+		int Height { get; set; }
+
+		DialogResult ShowDialog();
+
+		// ENHANCE: Add other methods as needed
+	}
+
+	
+	public partial class BrowserDialog : Form, IBrowserDialog
 	{
 		private Browser _browser;
 		private Boolean _hidden;

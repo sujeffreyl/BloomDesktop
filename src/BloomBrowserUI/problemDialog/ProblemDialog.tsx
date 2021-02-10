@@ -419,10 +419,14 @@ function useCtrlEnterToSubmit(callback) {
     level = level || ProblemKind.NonFatal; // Default to NonFatal if parsing error.
 
     if (level === ProblemKind.Notify) {
+        // Expects loader.html?level=notify[&reportLabel={reportLabel}][&secondaryLabel={secondaryLabel}][&msg={message}]
+        // reportLabel - Optional. The localized text that goes on the Report button. Omit or pass "" to disable Report button.
+        // secondaryLabel - Optional. The localized text that goes on the secondary action button. Omit or pass "" to disable the secondary action button.
+        // msg - Optional. The localized message to notify the user about. If omitted, will be retrieved via the BloomAPI instead.
         ReactDOM.render(
             <NotifyDialog
-                reportable={params.get("reportable") === "1"}
-                altL10nKey={params.get("altl10n")}
+                reportLabel={params.get("reportLabel")}
+                secondaryLabel={params.get("secondaryLabel")}
                 messageParam={params.get("msg")}
             />,
             element

@@ -18,8 +18,8 @@ import { ProblemKind } from "./ProblemDialog";
 
 const kEdgePadding = "24px";
 export const NotifyDialog: React.FunctionComponent<{
-    reportable: boolean;
-    altL10nKey: string | null;
+    reportLabel: string | null;
+    secondaryLabel: string | null;
     messageParam: string | null;
 }> = props => {
     const theme = makeTheme(ProblemKind.NonFatal);
@@ -29,7 +29,7 @@ export const NotifyDialog: React.FunctionComponent<{
     const localizedDlgTitle = useL10n(englishTitle, titleKey);
 
     const [message] = BloomApi.useApiStringIf(
-        "errorReport/message",
+        "problemReport/notify/message",
         props.messageParam || "",
         () => {
             return props.messageParam === null;
@@ -95,7 +95,7 @@ export const NotifyDialog: React.FunctionComponent<{
                 display: "flex",
                 // Use space-between so that when we have both #left and #right, they are split out to the outside edges
                 justifyContent: "space-between",
-                // Use row-reverse instead of reverse so that when reportable is false, the only DialogActions group
+                // Use row-reverse instead of reverse so that when not reportable, the only DialogActions group
                 // will be placed at the start (that is, the right). In standard "row", the start is the left
                 // but that's not where we want it to go.
                 flexDirection: "row-reverse",
@@ -128,10 +128,11 @@ export const NotifyDialog: React.FunctionComponent<{
                         Using row-reverse allows us to skip putting an empty leftActions, which is theoretically one less thing to render
                     */}
                 <DialogActions className={useRightStyle().root}>
-                    {props.altL10nKey && (
+                    {props.secondaryLabel && (
                         <BloomButton
                             enabled={true}
-                            l10nKey={props.altL10nKey}
+                            l10nKey=""
+                            alreadyLocalized={true}
                             hasText={true}
                             variant="text"
                             onClick={() => {
@@ -140,19 +141,20 @@ export const NotifyDialog: React.FunctionComponent<{
                                 });
                             }}
                         >
-                            Secondary Action
+                            {props.secondaryLabel}
                         </BloomButton>
                     )}
                     {getCloseButton()}
                 </DialogActions>
-                {props.reportable && (
+                {props.reportLabel && (
                     <DialogActions className={useLeftStyle().root}>
                         <BloomButton
                             className={`errorReportButton ${
                                 useLeftStyle().text
                             }`}
                             enabled={true}
-                            l10nKey="ErrorReportDialog.Report"
+                            l10nKey=""
+                            alreadyLocalized={true}
                             hasText={true}
                             variant="text"
                             onClick={() => {
@@ -161,7 +163,7 @@ export const NotifyDialog: React.FunctionComponent<{
                                 });
                             }}
                         >
-                            Report
+                            {props.reportLabel}
                         </BloomButton>
                     </DialogActions>
                 )}

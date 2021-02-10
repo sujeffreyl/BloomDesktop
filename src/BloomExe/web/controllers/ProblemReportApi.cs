@@ -82,6 +82,8 @@ namespace Bloom.web.controllers
 
 		private static BookSelection _bookSelection;
 
+		internal static string NotifyMessage { get; set; }
+
 		private BloomZipFile _bookZipFile;
 		private TempFile _bookZipFileTemp;
 		protected string YouTrackProjectKey = "BL";
@@ -100,7 +102,13 @@ namespace Bloom.web.controllers
 		}
 
 		public void RegisterWithApiHandler(BloomApiHandler apiHandler)
-		{			
+		{
+			apiHandler.RegisterEndpointHandlerUsedByOthers("problemReport/notify/message",
+				(ApiRequest request) =>
+				{
+					request.ReplyWithText(NotifyMessage ?? "");
+				}, false);
+
 			// For the paranoid - We could also have showProblemReport block these handlers while _reportInfo is being populated.
 			// I think it's unnecessary since the problem report dialog's URL isn't even set until after the _reportInfo is populated,
 			// and we assume that nothing sends problemReport API requests except the problemReportDialog that this class loads.
@@ -441,8 +449,9 @@ namespace Bloom.web.controllers
 					// In any case, both of the errors will be logged by now.
 					var message = "Bloom's error reporting failed: " + problemReportException.Message;
 
-					// Fallback to Winforms in case of trouble getting the browser up
+					// Fallback to Winforms in case of trouble getting the browser up					
 					var fallbackReporter = new WinFormsErrorReporter();
+					// ENHANCE?: If reporting a non-fatal problem failed, why is the program required to abort? It might be able to handle other tasks successfully
 					fallbackReporter.ReportFatalException(new ApplicationException(message, exception ?? problemReportException));
 				}
 				finally

@@ -630,18 +630,61 @@ namespace Bloom.Edit
 			var fakeException = new ApplicationException("Fake exception for development/testing purposes");
 
 			var title = _currentlyDisplayedBook.Title;
-			if (title == "Error NotifyUser")
+			if (title == "Error NotifyUser NoReport")
 			{
-				// This tests the default path, through libPalaso
+				// Tests a path through libPalaso directly (goes thru overloads 1, 2, 5)
 				ErrorReport.NotifyUserOfProblem(fakeProblemMessage);
 			}
-			else if (title == "Error NotifyUser NoReport")
+			else if (title == "Error NotifyUser LongMessage")
 			{
-				ErrorReportUtils.NotifyUserOfProblem(false, "", ErrorReportUtils.TestAction, null, fakeProblemMessage);
+				var longMessageBuilder = new StringBuilder();
+				while (longMessageBuilder.Length < 3000)
+				{
+					longMessageBuilder.AppendLine(fakeProblemMessage);
+				}
+
+				ErrorReport.NotifyUserOfProblem(longMessageBuilder.ToString());
+			}
+			else if (title == "Error NotifyUser Report NoRetry")
+			{
+				// Tests another path through libPalaso directly (goes thru overloads 3, 4, 5)
+				ErrorReport.NotifyUserOfProblem((Exception)null, fakeProblemMessage);
+			}
+			else if (title == "Error NotifyUser Report NoRetry 2")
+			{
+				// Tests a path where you need to go through the ErrorReportUtils adapters
+				// (follow-up actions automatically invoked)
+				ErrorReportUtils.NotifyUserOfProblem("", null, null, fakeProblemMessage);
 			}
 			else if (title == "Error NotifyUser Report Retry")
 			{
-				ErrorReportUtils.NotifyUserOfProblem(true, "ErrorReportDialog.Retry", ErrorReportUtils.TestAction, null, fakeProblemMessage);
+				// Tests a path where you need to go through the ErrorReportUtils adapters
+				// (follow-up actions automatically invoked)
+				var secondaryButtonLabel = LocalizationManager.GetString("ErrorReportDialog.Retry", "Retry");
+				ErrorReportUtils.NotifyUserOfProblem(secondaryButtonLabel, ErrorReportUtils.TestAction, fakeException, fakeProblemMessage);
+			}
+			else if (title == "Error NotifyUser Custom")
+			{
+				// Tests another path where you need to go through the ErrorReportUtils adapters
+				// (follow-up actions are NOT auto-invoked)
+				var result = ErrorReportUtils.NotifyUserOfProblem(new ShowAlwaysPolicy(), "CustomReport", ErrorResult.Yes, "CustomRetry", ErrorResult.Retry, fakeProblemMessage);
+
+				string message = null;
+				switch (result)
+				{
+					case ErrorResult.Yes:
+						message = "Report button clicked.";
+						break;
+					case ErrorResult.Retry:
+						message = "Retry button clicked.";
+						break;
+					default:
+						break;
+				}
+				if (message != null)
+				{
+					MessageBox.Show(message);
+				}
 			}
 			else if (title == "Error ReportNonFatalException")
 			{

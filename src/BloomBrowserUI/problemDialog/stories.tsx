@@ -22,15 +22,15 @@ storiesOf("Problem Report", module)
 storiesOf("Notify User Dialog", module)
     .add("NotifyUser, Non-Reportable", () => (
         <NotifyDialog
-            reportable={false}
-            altL10nKey=""
+            reportLabel={null}
+            secondaryLabel={null}
             messageParam="Fake error"
         />
     ))
     .add("NotifyUser, Non-Reportable", () => (
         <NotifyDialog
-            reportable={true}
-            altL10nKey=""
+            reportLabel="Report"
+            secondaryLabel={null}
             messageParam="Fake error"
         />
     ));
