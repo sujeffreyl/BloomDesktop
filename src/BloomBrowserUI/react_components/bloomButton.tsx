@@ -7,6 +7,35 @@ import {
 } from "./l10nComponents";
 import Button from "@material-ui/core/Button";
 
+type BloomButtonColor =
+    | "primary"
+    | "secondary"
+    | "default"
+    | "inherit"
+    | undefined
+    | null;
+
+type MaterialColor =
+    | "primary"
+    | "secondary"
+    | "default"
+    | "inherit"
+    | undefined;
+
+// We want this.props.color to be optional, and if not specified to default to "primary".
+// Unfortunately, Material UI already uses the value undefined, and it has a different meaning than "primary"...
+// So, we introduce null as a value here, which will correspond to Material UI's undefined. Sorry it's clunky :(
+function convertToMaterialColor(
+    bloomButtonColor: BloomButtonColor
+): MaterialColor {
+    if (bloomButtonColor === undefined) {
+        return "primary";
+    } else if (bloomButtonColor === null) {
+        return undefined;
+    } else {
+        return bloomButtonColor;
+    }
+}
 export interface IButtonProps extends ILocalizationProps {
     id?: string;
     enabled: boolean;
@@ -24,6 +53,7 @@ export interface IButtonProps extends ILocalizationProps {
     l10nTipEnglishDisabled?: string;
     iconBeforeText?: React.ReactNode;
     size?: "small" | "medium" | "large" | undefined;
+    color?: BloomButtonColor; // If unsure of the desired value, use "primary". If unspecified (i.e. undefined), will be converted to "primary". Unfortunately, that means you should pass in null, which will be converted to undefined, if you want Material to receive undefined.
 }
 
 // A button that takes a Bloom API endpoint to post() when clicked
@@ -79,7 +109,7 @@ export default class BloomButton extends LocalizableElement<
             <Button
                 {...commonProps}
                 variant={this.props.variant || "contained"}
-                color="primary"
+                color={convertToMaterialColor(this.props.color)}
                 startIcon={this.props.iconBeforeText}
                 size={this.props.size}
             >
